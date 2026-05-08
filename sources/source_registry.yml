@@ -1,0 +1,185 @@
+# Source Registry — RSS Feeds and High-Quality URLs
+
+# Source priority tiers:
+# 1 = official company / paper / filing / repo
+# 2 = conference official page / reputable tech media
+# 3 = specialist analyst / researcher
+# 4 = social media / community
+# 5 = aggregated blogs
+
+rss_feeds:
+
+  # --- AI Labs Official Blogs ---
+  - name: "OpenAI Blog"
+    url: "https://openai.com/blog/rss.xml"
+    source_type: company
+    priority: 1
+    topics: [ai]
+
+  - name: "Anthropic News"
+    url: "https://www.anthropic.com/rss.xml"
+    source_type: company
+    priority: 1
+    topics: [ai]
+
+  - name: "Google DeepMind Blog"
+    url: "https://deepmind.google/blog/rss.xml"
+    source_type: company
+    priority: 1
+    topics: [ai, robotics]
+
+  - name: "Google AI Blog"
+    url: "https://blog.research.google/feeds/posts/default"
+    source_type: company
+    priority: 1
+    topics: [ai]
+
+  - name: "Meta AI Blog"
+    url: "https://ai.meta.com/blog/rss/"
+    source_type: company
+    priority: 1
+    topics: [ai]
+
+  - name: "Microsoft Research Blog"
+    url: "https://www.microsoft.com/en-us/research/feed/"
+    source_type: company
+    priority: 1
+    topics: [ai]
+
+  - name: "NVIDIA Blog"
+    url: "https://blogs.nvidia.com/feed/"
+    source_type: company
+    priority: 1
+    topics: [ai, semiconductors, infrastructure]
+
+  - name: "AWS Machine Learning Blog"
+    url: "https://aws.amazon.com/blogs/machine-learning/feed/"
+    source_type: company
+    priority: 2
+    topics: [ai, infrastructure]
+
+  # --- Technology Media ---
+  - name: "The Verge"
+    url: "https://www.theverge.com/rss/index.xml"
+    source_type: media
+    priority: 2
+    topics: [big_tech, hardware, ai]
+
+  - name: "TechCrunch"
+    url: "https://techcrunch.com/feed/"
+    source_type: media
+    priority: 2
+    topics: [startups, big_tech, ai, funding]
+
+  - name: "Wired"
+    url: "https://www.wired.com/feed/rss"
+    source_type: media
+    priority: 2
+    topics: [ai, hardware, policy]
+
+  - name: "MIT Technology Review"
+    url: "https://www.technologyreview.com/feed/"
+    source_type: media
+    priority: 2
+    topics: [ai, robotics, policy]
+
+  - name: "IEEE Spectrum"
+    url: "https://spectrum.ieee.org/feeds/feed.rss"
+    source_type: media
+    priority: 2
+    topics: [semiconductors, robotics, hardware]
+
+  - name: "Ars Technica"
+    url: "https://feeds.arstechnica.com/arstechnica/index"
+    source_type: media
+    priority: 2
+    topics: [ai, hardware, policy]
+
+  # --- Startup / Funding ---
+  - name: "TechCrunch Startups"
+    url: "https://techcrunch.com/category/startups/feed/"
+    source_type: media
+    priority: 2
+    topics: [startups, funding]
+
+  # --- Research ---
+  - name: "Hugging Face Blog"
+    url: "https://huggingface.co/blog/feed.xml"
+    source_type: company
+    priority: 1
+    topics: [ai, papers]
+
+  - name: "Papers with Code Newsletter"
+    url: "https://paperswithcode.com/latest.rss"
+    source_type: aggregator
+    priority: 2
+    topics: [papers]
+
+  # --- Open Source ---
+  - name: "GitHub Blog"
+    url: "https://github.blog/feed/"
+    source_type: company
+    priority: 2
+    topics: [devtools, open_source]
+
+  # --- Semiconductors / Chips ---
+  - name: "SemiAnalysis"
+    url: "https://www.semianalysis.com/feed"
+    source_type: analyst
+    priority: 2
+    topics: [semiconductors, infrastructure]
+
+  - name: "AnandTech"
+    url: "https://www.anandtech.com/rss/"
+    source_type: media
+    priority: 2
+    topics: [semiconductors, hardware]
+
+  # --- China Tech ---
+  - name: "South China Morning Post Tech"
+    url: "https://www.scmp.com/rss/5/feed"
+    source_type: media
+    priority: 2
+    topics: [china_tech, policy]
+
+  # --- Macro / Geopolitical ---
+  - name: "Reuters Technology"
+    url: "https://feeds.reuters.com/reuters/technologyNews"
+    source_type: media
+    priority: 2
+    topics: [policy, macro]
+
+  - name: "Bloomberg Technology"
+    url: "https://feeds.bloomberg.com/technology/news.rss"
+    source_type: media
+    priority: 2
+    topics: [big_tech, macro, policy]
+
+  - name: "Financial Times Tech"
+    url: "https://www.ft.com/technology?format=rss"
+    source_type: media
+    priority: 2
+    topics: [big_tech, macro, policy]
+
+public_apis:
+  hacker_news:
+    top_stories: "https://hacker-news.firebaseio.com/v0/topstories.json"
+    item: "https://hacker-news.firebaseio.com/v0/item/{id}.json"
+    notes: "No API key required"
+
+  arxiv:
+    base_url: "https://export.arxiv.org/api/query"
+    notes: "Rate limit: 3 req/sec, be polite"
+
+  github_trending:
+    base_url: "https://api.github.com"
+    notes: "GITHUB_TOKEN strongly recommended"
+
+  hugging_face:
+    daily_papers: "https://huggingface.co/api/daily_papers"
+    trending_models: "https://huggingface.co/api/models?sort=trending&limit=20"
+    notes: "HF_TOKEN recommended for higher rate limits"
+
+  sec_edgar:
+    full_text_search: "https://efts.sec.gov/LATEST/search-index?q={query}&dateRange=custom&startdt={start}&enddt={end}"
+    notes: "Set User-Agent header with SEC_USER_EMAIL"

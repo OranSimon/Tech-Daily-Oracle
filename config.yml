@@ -1,0 +1,88 @@
+# Tech Daily Agent — Configuration
+
+run:
+  timezone: "Asia/Shanghai"
+  daily_hour: 7
+  weekly_day: "friday"
+  weekly_hour: 18
+  monthly_day: "last_workday"
+  report_window_hours: 24
+  language: "zh-CN"
+  report_reading_time_target_minutes: 20
+
+model:
+  default: "claude-sonnet-4-6"
+  fast: "claude-haiku-4-5-20251001"
+  deep: "claude-opus-4-7"
+  max_tokens_daily: 8000
+  max_tokens_weekly: 16000
+  max_tokens_monthly: 24000
+
+sources:
+  github_trending:
+    enabled: true
+    languages: []          # empty = all languages
+    time_range: "daily"    # daily | weekly | monthly
+    top_n: 25              # fetch top N then filter to top 3 high-signal
+
+  hacker_news:
+    enabled: true
+    top_stories: 50
+    min_score: 100
+
+  hugging_face:
+    enabled: true
+    daily_papers: true
+    trending_models: true
+    trending_spaces: false
+
+  arxiv:
+    enabled: true
+    categories:
+      - "cs.AI"
+      - "cs.LG"
+      - "cs.RO"
+      - "cs.CV"
+      - "cs.CL"
+    max_results_per_category: 20
+    days_back: 2
+
+  rss:
+    enabled: true
+    feeds_file: "sources/source_registry.yml"
+
+  web_search:
+    enabled: true
+    queries_per_run: 15
+    results_per_query: 5
+
+github:
+  repo: ""                 # owner/repo — set after initial push
+  branch: "main"
+  reports_path: "reports"
+  data_path: "data"
+
+notion:
+  enabled: false           # set to true after adding credentials
+  database_id: ""          # NOTION_DATABASE_ID env var or set here
+
+predictions:
+  daily_normal: 3          # predictions to generate on normal days
+  daily_low_signal: 1
+  daily_high_signal: 6
+  open_prediction_warning_threshold: 30
+
+github_project_filter:
+  top_n_per_report: 3
+  min_stars_total: 50
+  min_star_growth_weekly: 100
+
+output:
+  save_raw_events: true
+  save_normalized_events: true
+  save_topic_summaries: true
+  publish_notion: false
+  push_github: false       # set to true in production
+
+sec:
+  user_email: ""           # SEC_USER_EMAIL env var

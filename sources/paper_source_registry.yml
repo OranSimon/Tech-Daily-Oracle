@@ -1,0 +1,58 @@
+# Paper Source Registry
+
+sources:
+  hugging_face_daily_papers:
+    url: "https://huggingface.co/papers"
+    api: "https://huggingface.co/api/daily_papers"
+    priority: 1
+    notes: "Curated daily papers — high signal"
+
+  arxiv:
+    base_url: "https://arxiv.org"
+    api: "https://export.arxiv.org/api/query"
+    categories:
+      - id: "cs.AI"
+        label: "Artificial Intelligence"
+        priority: 1
+      - id: "cs.LG"
+        label: "Machine Learning"
+        priority: 1
+      - id: "cs.RO"
+        label: "Robotics"
+        priority: 1
+      - id: "cs.CV"
+        label: "Computer Vision"
+        priority: 1
+      - id: "cs.CL"
+        label: "Computation and Language"
+        priority: 1
+
+  papers_with_code:
+    url: "https://paperswithcode.com"
+    rss: "https://paperswithcode.com/latest.rss"
+    priority: 2
+    notes: "Good for papers with associated code"
+
+  semantic_scholar:
+    api: "https://api.semanticscholar.org/graph/v1"
+    priority: 2
+    notes: "SEMANTIC_SCHOLAR_API_KEY optional, increases rate limits"
+
+  openreview:
+    url: "https://openreview.net"
+    api: "https://api2.openreview.net"
+    priority: 2
+    notes: "Conference submission tracking (NeurIPS, ICLR, ICML)"
+
+selection_criteria:
+  - Clear technical contribution
+  - Fast propagation (citations within days)
+  - Potential engineering or product impact
+  - Code / model / demo availability
+  - Top conference / known lab / authoritative discussion
+  - Novel benchmark or evaluation methodology
+
+rejection_criteria:
+  - No abstract technical contribution
+  - Pure survey without new insight
+  - Incremental improvement on known method without clear advantage

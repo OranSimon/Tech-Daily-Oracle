@@ -1,0 +1,14 @@
+# Weekly Review Workflow
+name: weekly_review_workflow
+trigger: scheduled_friday_evening | manual
+
+steps:
+  - name: load_weekly_daily_reports
+  - name: load_prediction_updates_this_week
+  - name: load_resolved_predictions
+  - name: compute_brier_scores
+  - name: generate_weekly_review
+    script: run_weekly_review.run_weekly_review
+  - name: save_weekly_review
+  - name: publish_notion
+    condition: notion_enabled

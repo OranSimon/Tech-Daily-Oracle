@@ -1,0 +1,56 @@
+# GitHub Trending Configuration
+
+fetch:
+  time_ranges: [daily, weekly]
+  languages: []           # empty = all languages
+  max_repos_to_analyze: 25
+  top_n_in_report: 3
+
+ranking_criteria:
+  - Real developer pain point addressed
+  - Unusual star growth velocity
+  - Active maintainer commits (within 30 days)
+  - Quality documentation, examples, and tests
+  - Authority adoption or discussion (HN, Twitter, known engineers)
+  - Relevance to AI, robotics, infra, devtools, hardware, or systems
+
+filter_out:
+  - Pure LLM wrapper with <500 stars total
+  - Simple prompt collection or template repo
+  - No LICENSE file
+  - No README.md
+  - Last commit > 90 days ago (unless star spike is very recent)
+  - Single-day meme project
+  - Obvious tutorial / homework demo
+  - Repo created < 48 hours ago with no external endorsement
+
+topic_relevance:
+  high:
+    - AI inference engine
+    - LLM serving
+    - AI agent framework
+    - Robotics simulation
+    - GPU kernel
+    - Chip design tool
+    - Developer productivity
+    - Database / storage
+    - Networking / distributed systems
+  medium:
+    - Frontend framework (if AI-related)
+    - CLI tool
+    - Data pipeline
+  low:
+    - Pure UI component library
+    - Marketing website template
+    - Game engine (unless AI-related)
+
+star_growth_thresholds:
+  notable: 500       # stars in one day to flag as notable
+  viral: 2000        # stars in one day to flag as viral
+  sustained_weekly: 2000   # stars per week after 30 days = sustained adoption
+
+github_api:
+  search_endpoint: "https://api.github.com/search/repositories"
+  repos_endpoint: "https://api.github.com/repos/{owner}/{repo}"
+  traffic_endpoint: "https://api.github.com/repos/{owner}/{repo}/traffic/views"
+  commits_endpoint: "https://api.github.com/repos/{owner}/{repo}/commits"

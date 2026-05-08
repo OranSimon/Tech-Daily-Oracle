@@ -1,0 +1,19 @@
+# Market Signal Workflow (Phase 3/4)
+name: market_signal_workflow
+trigger: after_daily_workflow | manual
+status: planned  # Not implemented in Phase 1
+
+steps:
+  - name: load_company_events_from_daily
+  - name: load_market_price_data
+    requires: POLYGON_API_KEY or FINNHUB_API_KEY or yfinance
+  - name: load_options_data
+    requires: options_data_provider
+  - name: load_macro_liquidity_signals
+  - name: run_market_signal_agent
+    script: run_market_signal.run (not yet implemented)
+    prompts: [prompts/market_signal.md]
+  - name: append_market_signal_log
+    output: data/market_signal_log.jsonl
+  - name: update_scorecard
+    output: data/market_signal_scorecard.csv

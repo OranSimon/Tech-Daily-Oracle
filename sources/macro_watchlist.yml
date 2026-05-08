@@ -1,0 +1,89 @@
+# Macro & Geopolitical Watchlist
+
+inclusion_criteria:
+  - Chip export controls
+  - AI compute supply restrictions
+  - Energy prices affecting data centers
+  - Critical minerals (lithium, cobalt, rare earths, gallium, germanium)
+  - Drones / robotics / military AI technology
+  - Big Tech market access restrictions
+  - US-China-EU technology policy
+  - Supply chain and advanced manufacturing
+
+exclusion_criteria:
+  - Ordinary political news without technology impact
+  - Pure opinion-cycle news
+  - Diplomatic events without economic / supply chain / policy transmission
+
+required_analysis_questions:
+  - What is the transmission path to technology companies?
+  - Which companies, sectors, or technical directions are affected?
+  - Is the impact short-term, medium-term, or long-term?
+  - Does it affect existing predictions?
+
+key_policy_domains:
+  us:
+    - CHIPS Act implementation
+    - Export Administration Regulations (EAR)
+    - Entity List updates
+    - AI executive orders and policy
+    - DOD AI strategy
+    - FTC / DOJ antitrust
+
+  china:
+    - MIIT semiconductor policy
+    - AI governance regulations
+    - Data security law
+    - State-backed AI programs
+    - Huawei / SMIC developments
+    - Chip self-sufficiency initiatives
+
+  eu:
+    - EU AI Act enforcement
+    - GDPR AI implications
+    - Chips Act implementation
+    - Digital Markets Act
+
+  taiwan:
+    - TSMC capacity and export
+    - Cross-strait tension
+    - CoWoS and advanced packaging
+
+  middle_east:
+    - AI investment flows (UAE, Saudi)
+    - Data center energy
+    - Sovereign AI programs
+
+critical_commodities:
+  - name: Gallium
+    relevance: "Compound semiconductors (GaN, GaAs)"
+    china_dominance: 0.85
+
+  - name: Germanium
+    relevance: "Semiconductors, fiber optics"
+    china_dominance: 0.60
+
+  - name: Rare Earth Elements
+    relevance: "Magnets for motors and robots, EV"
+    china_dominance: 0.85
+
+  - name: Cobalt
+    relevance: "Battery cathodes"
+    drc_dominance: 0.70
+
+  - name: Lithium
+    relevance: "Batteries"
+    concentration: "Chile, Australia, China processing"
+
+  - name: "Palladium"
+    relevance: "Catalytic converters, electronics"
+    russia_dominance: 0.40
+
+macro_indicators:
+  - US Treasury 10Y yield
+  - Real rates (TIPS)
+  - DXY (Dollar strength)
+  - VIX
+  - Oil (WTI, Brent)
+  - Copper (economic health proxy)
+  - FedWatch rate probabilities

@@ -1,0 +1,56 @@
+# Daily Workflow — High-Level Step Sequence
+# This is a documentation artifact showing the logical workflow.
+# The actual automation is in .github/workflows/daily.yml
+
+name: daily_workflow
+trigger: scheduled | manual | webhook
+
+steps:
+  - name: load_historical_context
+    script: storage.load_recent_reports + load_open_predictions
+
+  - name: collect_sources
+    script: collect_sources.collect_sources
+    sources: [rss, hacker_news, hugging_face, arxiv, github_trending]
+
+  - name: normalize_events
+    script: normalize_sources.normalize_events
+
+  - name: analyze_topics
+    script: analyze_topics.analyze_topics
+    parallelizable: true
+
+  - name: analyze_companies
+    script: analyze_companies.analyze_companies
+    parallelizable: true
+
+  - name: analyze_papers
+    script: analyze_papers.analyze_papers
+    parallelizable: true
+
+  - name: analyze_github_projects
+    script: analyze_github_projects.analyze_github_projects
+
+  - name: analyze_social_signals
+    script: analyze_social_signals.analyze_social_signals
+    condition: hot_subject_detected
+
+  - name: analyze_macro_impact
+    script: analyze_macro_impact.analyze_macro_impact
+    condition: macro_keyword_detected
+
+  - name: update_predictions
+    script: update_predictions.run_prediction_updates
+
+  - name: generate_new_predictions
+    script: update_predictions.generate_new_predictions
+
+  - name: generate_report
+    script: generate_report.generate_daily_report
+
+  - name: save_outputs
+    script: storage.save_daily_report + save_predictions + append_events
+
+  - name: publish_notion
+    script: notion_publisher (phase 2)
+    condition: notion_enabled

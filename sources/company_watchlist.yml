@@ -1,0 +1,201 @@
+# Company Watchlist
+
+global_big_tech:
+  - name: Apple
+    ticker: AAPL
+    domains: [apple.com, developer.apple.com]
+    priority: 1
+
+  - name: Microsoft
+    ticker: MSFT
+    domains: [microsoft.com, azure.microsoft.com, blogs.microsoft.com]
+    priority: 1
+
+  - name: "Google / Alphabet"
+    ticker: GOOGL
+    domains: [google.com, deepmind.google, blog.google, ai.google, research.google]
+    priority: 1
+
+  - name: Amazon
+    ticker: AMZN
+    domains: [amazon.com, aws.amazon.com, aboutamazon.com]
+    priority: 1
+
+  - name: Meta
+    ticker: META
+    domains: [meta.com, ai.meta.com, llama.meta.com, research.facebook.com]
+    priority: 1
+
+  - name: Nvidia
+    ticker: NVDA
+    domains: [nvidia.com, developer.nvidia.com, nvidianews.nvidia.com, blogs.nvidia.com]
+    priority: 1
+
+  - name: Tesla
+    ticker: TSLA
+    domains: [tesla.com, ir.tesla.com]
+    priority: 1
+
+ai_labs:
+  - name: OpenAI
+    domains: [openai.com, platform.openai.com]
+    priority: 1
+
+  - name: Anthropic
+    domains: [anthropic.com]
+    priority: 1
+
+  - name: DeepMind
+    domains: [deepmind.google, deepmind.com]
+    priority: 1
+
+  - name: xAI
+    domains: [x.ai]
+    priority: 1
+
+  - name: Mistral
+    domains: [mistral.ai]
+    priority: 2
+
+  - name: Cohere
+    domains: [cohere.com]
+    priority: 2
+
+  - name: Perplexity
+    domains: [perplexity.ai]
+    priority: 2
+
+robotics_embodied_ai:
+  - name: "Figure AI"
+    domains: [figure.ai]
+    priority: 1
+
+  - name: "Physical Intelligence"
+    domains: [physicalintelligence.company]
+    priority: 1
+
+  - name: "Skild AI"
+    domains: [skild.ai]
+    priority: 1
+
+  - name: "Field AI"
+    domains: [field.ai]
+    priority: 1
+
+  - name: "Agility Robotics"
+    domains: [agilityrobotics.com]
+    priority: 2
+
+  - name: "Boston Dynamics"
+    domains: [bostondynamics.com]
+    priority: 1
+
+  - name: Apptronik
+    domains: [apptronik.com]
+    priority: 2
+
+ai_infrastructure:
+  - name: CoreWeave
+    ticker: CRWV
+    domains: [coreweave.com]
+    priority: 1
+
+  - name: Lambda
+    domains: [lambdalabs.com]
+    priority: 2
+
+  - name: Crusoe
+    domains: [crusoe.ai]
+    priority: 2
+
+  - name: "Together AI"
+    domains: [together.ai]
+    priority: 2
+
+  - name: "Fireworks AI"
+    domains: [fireworks.ai]
+    priority: 2
+
+  - name: Groq
+    domains: [groq.com]
+    priority: 2
+
+  - name: Cerebras
+    domains: [cerebras.ai]
+    priority: 2
+
+hardware_devices:
+  - name: Humane
+    domains: [humane.com]
+    priority: 2
+
+  - name: Rabbit
+    domains: [rabbit.tech]
+    priority: 2
+
+  - name: "Brilliant Labs"
+    domains: [brilliant.xyz]
+    priority: 2
+
+  - name: "Meta Reality Labs"
+    domains: [about.meta.com/realitylabs]
+    priority: 2
+
+  - name: "Apple Vision Pro ecosystem"
+    domains: [apple.com/apple-vision-pro]
+    priority: 1
+
+china_tech:
+  - name: Huawei
+    domains: [huawei.com, consumer.huawei.com]
+    priority: 1
+
+  - name: ByteDance
+    domains: [bytedance.com, bytedance.com/en]
+    priority: 1
+
+  - name: Alibaba
+    ticker: BABA
+    domains: [alibaba.com, alibabacloud.com, qwen.aliyun.com]
+    priority: 1
+
+  - name: Tencent
+    domains: [tencent.com, global.tencent.com]
+    priority: 1
+
+  - name: Baidu
+    ticker: BIDU
+    domains: [baidu.com, research.baidu.com]
+    priority: 1
+
+  - name: Xiaomi
+    domains: [mi.com, xiaomi.com]
+    priority: 2
+
+  - name: "Unitree Robotics"
+    domains: [unitree.com, unitreerobotics.com]
+    priority: 1
+
+  - name: "Zhiyuan Robotics"
+    domains: [agibot.com]
+    priority: 1
+
+  - name: DeepSeek
+    domains: [deepseek.com]
+    priority: 1
+
+  - name: "Moonshot AI"
+    domains: [moonshot.cn, kimi.moonshot.cn]
+    priority: 2
+
+  - name: MiniMax
+    domains: [minimax.io, hailuo.ai]
+    priority: 2
+
+  - name: "Zhipu AI"
+    domains: [zhipuai.cn]
+    priority: 2
+
+  - name: StepFun
+    domains: [stepfun.com]
+    priority: 2

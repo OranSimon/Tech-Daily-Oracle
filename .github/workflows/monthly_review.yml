@@ -1,0 +1,58 @@
+name: Tech Monthly Review
+
+on:
+  # Last working day of each month — approximate via last Friday or day 28-31
+  schedule:
+    # Run on the 28th of each month at 10:00 UTC; will cover most months
+    - cron: '0 10 28 * *'
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Month string e.g. 2026-05'
+        required: false
+        type: string
+
+jobs:
+  monthly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monthly review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: |
+          MONTH_ARG=""
+          if [ -n "${{ github.event.inputs.month }}" ]; then
+            MONTH_ARG="--month ${{ github.event.inputs.month }}"
+          fi
+          python scripts/run_monthly_review.py $MONTH_ARG
+
+      - name: Commit and push review
+        run: |
+          git config user.name "Tech Daily Agent"
+          git config user.email "actions@github.com"
+          git add reports/monthly/ data/
+          git diff --staged --quiet || git commit -m "chore: monthly review $(date +%Y-%m)"
+          git push

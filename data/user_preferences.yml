@@ -1,0 +1,57 @@
+# User Preferences
+
+report:
+  language: "zh-CN"
+  company_name_language: "en"
+  paper_title_language: "en"
+  project_name_language: "en"
+  technical_term_language: "en"
+  reading_time_target_minutes: 20
+  tone: personal_intelligence        # personal_intelligence | newsletter | academic
+  judgment_style: direct             # direct | hedged | neutral
+
+focus_areas:
+  primary:
+    - AI
+    - Embodied AI / Robotics
+    - AI Infrastructure / Chips
+    - GitHub Trending
+    - Hugging Face Daily Papers
+    - Big Tech
+    - Startups / Unicorns
+
+  secondary:
+    - Hardware / Devices
+    - Tech conferences
+    - Social media signals
+    - Earnings / layoffs
+
+  tertiary:
+    - Long-term paper trends
+    - Open-source ecosystem
+    - Global tech policy
+    - Supply chain
+
+china_tech:
+  separate_section: true
+  analysis_dimensions:
+    - Technical progress
+    - Product releases
+    - Open-source / paper / benchmark
+    - Supply chain and chip constraints
+    - Domestic vs global competition
+    - Policy impact
+    - Route differences from global tech
+
+market_signal:
+  enabled: false          # Phase 3/4 feature
+  tracked_tickers: []
+
+predictions:
+  show_brier_score: true
+  show_calibration: true
+  track_error_types: true
+
+notifications:
+  notion_push: false
+  email_summary: false

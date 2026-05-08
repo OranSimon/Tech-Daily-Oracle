@@ -1,0 +1,57 @@
+name: Tech Weekly Review
+
+on:
+  schedule:
+    # Friday at 10:00 UTC = ~18:00 CST
+    - cron: '0 10 * * 5'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'ISO week string e.g. 2026-W19'
+        required: false
+        type: string
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run weekly review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: |
+          WEEK_ARG=""
+          if [ -n "${{ github.event.inputs.week }}" ]; then
+            WEEK_ARG="--week ${{ github.event.inputs.week }}"
+          fi
+          python scripts/run_weekly_review.py $WEEK_ARG
+
+      - name: Commit and push review
+        run: |
+          git config user.name "Tech Daily Agent"
+          git config user.email "actions@github.com"
+          git add reports/weekly/ data/
+          git diff --staged --quiet || git commit -m "chore: weekly review $(date +%Y-W%V)"
+          git push

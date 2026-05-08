@@ -1,0 +1,96 @@
+# Startup & Unicorn Watchlist
+# Hot startups actively tracked — updated periodically
+
+active:
+  - name: "Cognition AI"
+    sector: ai_agents
+    product: "Devin (AI software engineer)"
+    founded: 2023
+    status: active
+    why_hot: "First agent claiming software-engineer-level autonomy"
+    last_updated: "2026-05"
+
+  - name: "Harvey AI"
+    sector: ai_agents
+    product: "AI legal assistant"
+    founded: 2022
+    status: active
+    why_hot: "Enterprise legal AI with strong lawyer adoption"
+    last_updated: "2026-05"
+
+  - name: "Anysphere (Cursor)"
+    sector: developer_tools
+    product: "Cursor (AI code editor)"
+    founded: 2022
+    status: active
+    why_hot: "Fastest growing AI code editor, strong developer adoption"
+    last_updated: "2026-05"
+
+  - name: "Replit"
+    sector: developer_tools
+    product: "AI-native coding platform"
+    founded: 2016
+    status: active
+    why_hot: "Agent-based code generation and deployment"
+    last_updated: "2026-05"
+
+  - name: "Lovable"
+    sector: developer_tools
+    product: "AI web app builder"
+    founded: 2024
+    status: active
+    why_hot: "No-code AI app generation, viral growth"
+    last_updated: "2026-05"
+
+  - name: "Pika Labs"
+    sector: ai_models
+    product: "AI video generation"
+    founded: 2023
+    status: active
+    why_hot: "Consumer video generation with strong retention"
+    last_updated: "2026-05"
+
+  - name: "ElevenLabs"
+    sector: ai_models
+    product: "AI voice synthesis"
+    founded: 2022
+    status: active
+    why_hot: "Leading voice AI with broad API adoption"
+    last_updated: "2026-05"
+
+  - name: "World Labs"
+    sector: embodied_ai_robotics
+    product: "Spatial intelligence / world models"
+    founded: 2024
+    status: active
+    why_hot: "Li Feifei's company, spatial world model focus"
+    last_updated: "2026-05"
+
+  - name: "Thinking Machines Lab"
+    sector: ai_models
+    product: "General AI research lab"
+    founded: 2025
+    status: emerging
+    why_hot: "Mira Murati's company post-OpenAI"
+    last_updated: "2026-05"
+
+  - name: "Safe Superintelligence (SSI)"
+    sector: ai_models
+    product: "Safety-focused superintelligence research"
+    founded: 2024
+    status: active
+    why_hot: "Ilya Sutskever's company, no product approach"
+    last_updated: "2026-05"
+
+recently_graduated:
+  - name: "Mistral AI"
+    sector: ai_models
+    status: unicorn
+    notes: "Graduated from hot startup to established AI lab"
+
+  - name: "Perplexity AI"
+    sector: ai_models
+    status: unicorn
+    notes: "AI search, significant revenue growth"
+
+monitoring_queue: []

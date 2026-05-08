@@ -1,0 +1,245 @@
+# Topic Taxonomy
+
+topics:
+  ai_models:
+    label: "AI Models / Foundation Models"
+    priority: 1
+    keywords:
+      - LLM
+      - foundation model
+      - multimodal
+      - reasoning model
+      - language model
+      - image generation
+      - video generation
+      - text-to-speech
+      - speech recognition
+      - fine-tuning
+      - RLHF
+      - model release
+      - benchmark
+      - evaluation
+    trend_status: accelerating
+
+  ai_agents:
+    label: "AI Agents / Agentic Workflow"
+    priority: 1
+    keywords:
+      - AI agent
+      - agentic
+      - autonomous agent
+      - multi-agent
+      - tool use
+      - function calling
+      - MCP
+      - computer use
+      - workflow automation
+      - agent framework
+      - orchestration
+    trend_status: accelerating
+
+  embodied_ai_robotics:
+    label: "Embodied AI / Robotics"
+    priority: 1
+    keywords:
+      - embodied AI
+      - humanoid robot
+      - manipulation
+      - locomotion
+      - mobile robot
+      - robot learning
+      - imitation learning
+      - dexterous
+      - whole-body control
+      - robot foundation model
+    trend_status: accelerating
+
+  autonomous_systems:
+    label: "Autonomous Systems / Drones"
+    priority: 2
+    keywords:
+      - autonomous driving
+      - self-driving
+      - FSD
+      - drone
+      - UAV
+      - UAS
+      - autonomous vehicle
+      - SLAM
+      - path planning
+    trend_status: accelerating
+
+  ai_infrastructure:
+    label: "AI Infrastructure / Inference / Chips"
+    priority: 1
+    keywords:
+      - inference
+      - GPU cluster
+      - training cluster
+      - data center
+      - accelerator
+      - TPU
+      - H100
+      - H200
+      - B200
+      - Blackwell
+      - Hopper
+      - compute
+      - AI infrastructure
+      - cloud GPU
+      - serving
+      - vLLM
+      - TensorRT
+    trend_status: accelerating
+
+  developer_tools:
+    label: "Developer Tools / Open Source"
+    priority: 2
+    keywords:
+      - developer tool
+      - SDK
+      - framework
+      - library
+      - API
+      - CLI
+      - open source
+      - GitHub
+      - devtool
+      - IDE
+      - code assistant
+    trend_status: accelerating
+
+  hardware_devices:
+    label: "Hardware / Devices / Wearables"
+    priority: 2
+    keywords:
+      - consumer hardware
+      - wearable
+      - AR glasses
+      - spatial computing
+      - AI device
+      - edge device
+      - smart glasses
+      - laptop
+      - phone
+      - chip
+    trend_status: unchanged
+
+  semiconductors:
+    label: "Semiconductors / Compute Supply Chain"
+    priority: 1
+    keywords:
+      - semiconductor
+      - chip
+      - TSMC
+      - ASML
+      - fabrication
+      - packaging
+      - CoWoS
+      - HBM
+      - memory
+      - foundry
+      - export control
+      - supply chain
+    trend_status: accelerating
+
+  big_tech_strategy:
+    label: "Big Tech Strategy"
+    priority: 1
+    keywords:
+      - earnings
+      - guidance
+      - capex
+      - layoffs
+      - restructuring
+      - acquisition
+      - M&A
+      - product launch
+      - strategy shift
+      - antitrust
+      - regulatory
+    trend_status: unchanged
+
+  startups_unicorns:
+    label: "Startups / Unicorns / Funding"
+    priority: 1
+    keywords:
+      - startup
+      - unicorn
+      - funding
+      - Series A
+      - Series B
+      - seed round
+      - VC
+      - venture capital
+      - valuation
+      - IPO
+      - founder
+    trend_status: accelerating
+
+  papers_research:
+    label: "Papers / Research Frontiers"
+    priority: 1
+    keywords:
+      - paper
+      - arXiv
+      - research
+      - NeurIPS
+      - ICML
+      - ICLR
+      - CVPR
+      - preprint
+      - benchmark
+      - dataset
+    trend_status: accelerating
+
+  github_opensource:
+    label: "GitHub Trending / Open-source Projects"
+    priority: 1
+    keywords:
+      - GitHub trending
+      - open source
+      - repository
+      - stars
+      - fork
+      - pull request
+      - maintainer
+    trend_status: accelerating
+
+  social_signals:
+    label: "Social Media Product Reviews"
+    priority: 2
+    keywords:
+      - review
+      - community reaction
+      - Hacker News
+      - discussion
+      - benchmark test
+      - user report
+    trend_status: unchanged
+
+  macro_geopolitical:
+    label: "Macro / Geopolitical Impact on Tech"
+    priority: 2
+    keywords:
+      - export control
+      - sanctions
+      - tariff
+      - trade war
+      - chip ban
+      - AI regulation
+      - EU AI Act
+      - policy
+      - geopolitical
+      - energy
+      - mineral
+    trend_status: unchanged
+
+trend_status_labels:
+  - accelerating
+  - cooling
+  - reversing
+  - fragmented
+  - unchanged
+  - newly_emerging
+  - hype_spike

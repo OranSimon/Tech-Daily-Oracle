@@ -1,0 +1,82 @@
+# Influencer & Authority Watchlist
+# Used to identify high-signal social media commentary
+
+researchers_engineers:
+  - handle: "@karpathy"
+    name: "Andrej Karpathy"
+    platform: X
+    domain: [ai, llm, education]
+    weight: 0.95
+
+  - handle: "@ylecun"
+    name: "Yann LeCun"
+    platform: X
+    domain: [ai, research]
+    weight: 0.90
+
+  - handle: "@geoffreyhinton"
+    name: "Geoffrey Hinton"
+    platform: X
+    domain: [ai, safety]
+    weight: 0.90
+
+  - handle: "@drjimfan"
+    name: "Jim Fan"
+    platform: X
+    domain: [embodied_ai, robotics]
+    weight: 0.90
+
+  - handle: "@_akhaliq"
+    name: "AK"
+    platform: X
+    domain: [papers, ai]
+    weight: 0.85
+
+  - handle: "@fchollet"
+    name: "François Chollet"
+    platform: X
+    domain: [ai, reasoning]
+    weight: 0.85
+
+  - handle: "@sama"
+    name: "Sam Altman"
+    platform: X
+    domain: [ai, openai]
+    weight: 0.90
+
+  - handle: "@demishassabis"
+    name: "Demis Hassabis"
+    platform: X
+    domain: [ai, deepmind]
+    weight: 0.90
+
+  - handle: "@hardmaru"
+    name: "hardmaru (David Ha)"
+    platform: X
+    domain: [ai, research]
+    weight: 0.80
+
+investors_analysts:
+  - handle: "@benedictevans"
+    name: "Benedict Evans"
+    platform: X
+    domain: [big_tech, strategy]
+    weight: 0.85
+
+  - handle: "@stratechery"
+    name: "Ben Thompson"
+    platform: X
+    domain: [big_tech, strategy]
+    weight: 0.85
+
+  - handle: "@semianalysis"
+    name: "Dylan Patel (SemiAnalysis)"
+    platform: X
+    domain: [semiconductors, infrastructure]
+    weight: 0.90
+
+hacker_news_signals:
+  min_points: 100
+  min_comments: 30
+  front_page_weight: 0.85
+  notes: "HN is primary non-X community signal source"

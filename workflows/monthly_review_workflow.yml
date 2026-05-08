@@ -1,0 +1,14 @@
+# Monthly Review Workflow
+name: monthly_review_workflow
+trigger: scheduled_month_end | manual
+
+steps:
+  - name: load_weekly_reviews
+  - name: load_topic_trend_history_90d
+  - name: load_company_mention_trends
+  - name: load_prediction_performance
+  - name: generate_monthly_review
+    script: run_monthly_review.run_monthly_review
+  - name: save_monthly_review
+  - name: publish_notion
+    condition: notion_enabled

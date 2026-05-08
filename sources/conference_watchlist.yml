@@ -1,0 +1,151 @@
+# Conference Watchlist
+
+ai_ml:
+  - name: NeurIPS
+    full_name: "Neural Information Processing Systems"
+    typical_month: December
+    website: neurips.cc
+    importance: 1
+
+  - name: ICML
+    full_name: "International Conference on Machine Learning"
+    typical_month: July
+    website: icml.cc
+    importance: 1
+
+  - name: ICLR
+    full_name: "International Conference on Learning Representations"
+    typical_month: May
+    website: iclr.cc
+    importance: 1
+
+  - name: CVPR
+    full_name: "Computer Vision and Pattern Recognition"
+    typical_month: June
+    website: cvpr.thecvf.com
+    importance: 1
+
+  - name: ICCV
+    full_name: "International Conference on Computer Vision"
+    typical_month: October
+    website: iccv.thecvf.com
+    importance: 1
+    notes: "Biennial — odd years"
+
+  - name: ECCV
+    full_name: "European Conference on Computer Vision"
+    typical_month: October
+    website: eccv.ecva.net
+    importance: 1
+    notes: "Biennial — even years"
+
+nlp:
+  - name: ACL
+    full_name: "Association for Computational Linguistics"
+    typical_month: August
+    website: aclanthology.org
+    importance: 1
+
+  - name: EMNLP
+    full_name: "Empirical Methods in Natural Language Processing"
+    typical_month: November
+    website: aclanthology.org
+    importance: 1
+
+  - name: NAACL
+    full_name: "North American Chapter of the ACL"
+    typical_month: June
+    website: aclanthology.org
+    importance: 2
+
+robotics:
+  - name: RSS
+    full_name: "Robotics: Science and Systems"
+    typical_month: July
+    website: roboticsconference.org
+    importance: 1
+
+  - name: CoRL
+    full_name: "Conference on Robot Learning"
+    typical_month: November
+    website: corl.org
+    importance: 1
+
+  - name: ICRA
+    full_name: "International Conference on Robotics and Automation"
+    typical_month: May
+    website: ieee-icra.org
+    importance: 1
+
+  - name: IROS
+    full_name: "International Conference on Intelligent Robots and Systems"
+    typical_month: October
+    website: iros.org
+    importance: 2
+
+systems:
+  - name: MLSys
+    full_name: "Conference on Machine Learning and Systems"
+    typical_month: May
+    website: mlsys.org
+    importance: 1
+
+  - name: OSDI
+    full_name: "Operating Systems Design and Implementation"
+    typical_month: July
+    website: usenix.org/osdi
+    importance: 2
+
+  - name: SOSP
+    full_name: "Symposium on Operating Systems Principles"
+    typical_month: November
+    website: sosp.org
+    importance: 2
+    notes: "Biennial"
+
+  - name: NSDI
+    full_name: "Networked Systems Design and Implementation"
+    typical_month: April
+    website: usenix.org/nsdi
+    importance: 2
+
+  - name: SIGCOMM
+    full_name: "ACM Special Interest Group on Data Communications"
+    typical_month: August
+    website: sigcomm.org
+    importance: 2
+
+graphics:
+  - name: SIGGRAPH
+    full_name: "Special Interest Group on Graphics"
+    typical_month: August
+    website: siggraph.org
+    importance: 2
+
+industry_events:
+  - name: GTC
+    full_name: "Nvidia GPU Technology Conference"
+    organizer: Nvidia
+    importance: 1
+    notes: "Key for AI infra and chip announcements"
+
+  - name: WWDC
+    full_name: "Apple Worldwide Developers Conference"
+    organizer: Apple
+    importance: 1
+
+  - name: Google I/O
+    organizer: Google
+    importance: 1
+
+  - name: "Microsoft Build"
+    organizer: Microsoft
+    importance: 1
+
+  - name: "Amazon re:Invent"
+    organizer: Amazon
+    importance: 1
+
+  - name: "Meta Connect"
+    organizer: Meta
+    importance: 2
