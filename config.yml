@@ -30,14 +30,14 @@ ai_providers:
     deep:    "claude-opus-4-7"
 
   gpt:
-    default: "gpt-4o"
-    fast:    "gpt-4o-mini"
-    deep:    "o1"
+    default: "gpt-5.5"           # current flagship: 1M context, strong reasoning
+    fast:    "gpt-5.4-nano"      # cheapest GPT-5-class, high-volume simple calls
+    deep:    "gpt-5.5"           # no separate pro tier; flagship handles deep tasks
 
   gemini:
-    default: "gemini-2.0-flash"
-    fast:    "gemini-2.0-flash-lite"
-    deep:    "gemini-2.5-pro-preview-06-05"
+    default: "gemini-2.5-flash"       # stable release, best price/performance
+    fast:    "gemini-2.5-flash-lite"  # stable, cheapest Gemini option
+    deep:    "gemini-3.1-pro-preview" # most capable available (preview, production-grade)
 
 sources:
   github_trending:
@@ -78,14 +78,14 @@ sources:
     results_per_query: 5
 
 github:
-  repo: ""                 # owner/repo — set after initial push
+  repo: "OranSimon/Tech-Daily-Oracle"                 # owner/repo — set after initial push
   branch: "main"
   reports_path: "reports"
   data_path: "data"
 
 notion:
-  enabled: false           # set to true after adding credentials
-  database_id: ""          # NOTION_DATABASE_ID env var or set here
+  enabled: true           # set to true after adding credentials
+  database_id: "35ba03826676805f9a91c0291b790f4e"          # NOTION_DATABASE_ID env var or set here
 
 predictions:
   daily_normal: 3          # predictions to generate on normal days
@@ -102,8 +102,8 @@ output:
   save_raw_events: true
   save_normalized_events: true
   save_topic_summaries: true
-  publish_notion: false
-  push_github: false       # set to true in production
+  publish_notion: true
+  push_github: true       # set to true in production
 
 sec:
-  user_email: ""           # SEC_USER_EMAIL env var
+  user_email: "[EMAIL_ADDRESS]"           # SEC_USER_EMAIL env var
