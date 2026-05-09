@@ -1,3 +1,9 @@
+# Core — always required
 anthropic>=0.40.0
 httpx>=0.27.0
 pyyaml>=6.0.2
+
+# Fallback AI providers — optional but recommended for resilience
+# Install whichever you plan to use as backup:
+openai>=1.30.0                 # GPT fallback (requires OPENAI_API_KEY)
+google-generativeai>=0.8.0     # Gemini fallback (requires GEMINI_API_KEY or GOOGLE_API_KEY)

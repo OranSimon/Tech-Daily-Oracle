@@ -108,12 +108,20 @@ workflows/                      # GitHub Actions YAML files
 pip install -r requirements.txt
 ```
 
+To use only Claude (no fallback providers):
+```bash
+pip install anthropic httpx pyyaml
+```
+
 ### 2. Configure environment variables
 
-**Required:**
+**Required — at least one AI provider key:**
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...   # Claude (primary by default)
+export OPENAI_API_KEY=sk-...          # GPT (1st fallback by default)
+export GEMINI_API_KEY=AIza...         # Gemini (2nd fallback by default)
 ```
+The system tries providers in order. It skips any provider whose key is missing, so you only need the keys for providers you want active.
 
 **Strongly recommended** (more sources, higher quality):
 ```bash
@@ -165,6 +173,52 @@ Output: `reports/daily/YYYY-MM-DD.md`
 
 ---
 
+## AI Provider Fallback
+
+The system uses a provider chain: **Claude → GPT → Gemini** by default. On any API error, rate-limit, or missing key the next provider is tried transparently. A log line is printed whenever a fallback fires:
+
+```
+[AI] claude (claude-sonnet-4-6) failed: 529 overloaded
+[AI] Using fallback provider: gpt (gpt-4o)
+```
+
+**Model role mapping across providers:**
+
+| Role | Claude | GPT | Gemini |
+|------|--------|-----|--------|
+| default | claude-sonnet-4-6 | gpt-4o | gemini-2.0-flash |
+| fast | claude-haiku-4-5-20251001 | gpt-4o-mini | gemini-2.0-flash-lite |
+| deep | claude-opus-4-7 | o1 | gemini-2.5-pro-preview-06-05 |
+
+When falling back, the role (fast / default / deep) is preserved — a fast Claude call becomes a fast GPT call, not a full-cost one.
+
+**`web_search` is Claude-only** — the `web_search_20250305` built-in tool is Anthropic-specific. If Claude is unavailable when web search runs, those queries are skipped; the rest of the pipeline continues normally using the fallback provider for all other AI calls.
+
+**Changing the provider order** — edit `config.yml`:
+
+```yaml
+ai_providers:
+  order: ["gpt", "claude", "gemini"]   # make GPT primary
+```
+
+**Disabling a provider** — remove it from the list:
+
+```yaml
+ai_providers:
+  order: ["claude"]   # Claude only, no fallback
+```
+
+**Custom model overrides** — pin specific models per provider:
+
+```yaml
+ai_providers:
+  gpt:
+    default: "gpt-4-turbo"
+    deep: "o3"
+```
+
+---
+
 ## GitHub Actions (Automated)
 
 Copy the three workflow files to `.github/workflows/`:
@@ -178,12 +232,14 @@ Add these **Repository Secrets** (Settings → Secrets and variables → Actions
 
 | Secret | Required | Notes |
 |--------|----------|-------|
-| `ANTHROPIC_API_KEY` | Yes | Main AI engine |
+| `ANTHROPIC_API_KEY` | Recommended | Claude — primary provider |
+| `OPENAI_API_KEY` | Recommended | GPT — 1st fallback |
+| `GEMINI_API_KEY` | Optional | Gemini — 2nd fallback |
 | `HF_TOKEN` | Recommended | Hugging Face access |
 | `NOTION_API_KEY` | Optional | If publishing to Notion |
 | `NOTION_DATABASE_ID` | Optional | With above |
 
-`GITHUB_TOKEN` is injected automatically by Actions — no manual secret needed.
+At least one AI provider key is required. `GITHUB_TOKEN` is injected automatically by Actions — no manual secret needed.
 
 **Schedule:**
 - Daily brief: weekdays at 23:00 UTC (07:00 CST next day)
