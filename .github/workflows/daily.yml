@@ -17,7 +17,7 @@ permissions:
 jobs:
   daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -52,7 +52,7 @@ jobs:
           if [ -n "${{ github.event.inputs.run_date }}" ]; then
             DATE_ARG="--date ${{ github.event.inputs.run_date }}"
           fi
-          python scripts/run_daily.py $DATE_ARG
+          python -u scripts/run_daily.py $DATE_ARG
 
       - name: Commit and push report
         run: |

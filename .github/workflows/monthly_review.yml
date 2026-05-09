@@ -51,7 +51,7 @@ jobs:
           if [ -n "${{ github.event.inputs.month }}" ]; then
             MONTH_ARG="--month ${{ github.event.inputs.month }}"
           fi
-          python scripts/run_monthly_review.py $MONTH_ARG
+          python -u scripts/run_monthly_review.py $MONTH_ARG
 
       - name: Commit and push review
         run: |

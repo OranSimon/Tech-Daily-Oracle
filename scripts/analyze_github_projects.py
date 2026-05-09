@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
 
@@ -13,6 +14,8 @@ import yaml
 
 from claude_client import call_claude_json
 from state import NormalizedEvent, ProjectAnalysis
+
+MAX_WORKERS = 5
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -99,10 +102,7 @@ def analyze_github_projects(
 
     enriched_data = asyncio.run(enrich_repos(github_events))
 
-    analyses: dict[str, ProjectAnalysis] = {}
-    scored_repos: list[tuple[float, str, ProjectAnalysis]] = []
-
-    for item in enriched_data:
+    def _analyze_one_repo(item: dict[str, Any]) -> tuple[float, str, ProjectAnalysis] | None:
         meta = item["meta"]
         details = item["details"]
         owner = meta.get("owner", "")
@@ -143,12 +143,12 @@ def analyze_github_projects(
             result = call_claude_json(
                 system=prompt_system,
                 user=user_msg,
-                max_tokens=1024,
+                max_tokens=4096,
             )
 
             if not result.get("report_worthy", True):
                 print(f"  [GitHub] Filtered: {full_name} — {result.get('filter_out_reason', '')}")
-                continue
+                return None
 
             analysis = ProjectAnalysis(
                 repo=result.get("repo", full_name),
@@ -173,13 +173,23 @@ def analyze_github_projects(
                 hype_risk=result.get("hype_risk", "medium"),
                 signals_to_monitor=result.get("signals_to_monitor", []),
             )
-
             total_score = result.get("scores", {}).get("total", 0)
-            scored_repos.append((total_score, full_name, analysis))
             print(f"  [GitHub] {full_name}: score={total_score} verdict={analysis.verdict}")
+            return (total_score, full_name, analysis)
 
         except Exception as e:
             print(f"  [GitHub] Analysis failed for {full_name}: {e}")
+            return None
+
+    analyses: dict[str, ProjectAnalysis] = {}
+    scored_repos: list[tuple[float, str, ProjectAnalysis]] = []
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = [executor.submit(_analyze_one_repo, item) for item in enriched_data]
+        for future in as_completed(futures):
+            result = future.result()
+            if result is not None:
+                scored_repos.append(result)
 
     # Sort by score and take top N
     scored_repos.sort(key=lambda x: x[0], reverse=True)

@@ -86,7 +86,7 @@ def analyze_macro_impact(
             result = call_claude_json(
                 system=prompt_system,
                 user=user_msg,
-                max_tokens=1024,
+                max_tokens=4096,
             )
 
             if not result.get("report_worthy", True):

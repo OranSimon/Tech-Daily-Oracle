@@ -453,13 +453,20 @@ def _web_search_query_to_events(query: str, date_str: str) -> list[RawEvent]:
 
 
 def _fetch_web_search_sync(queries: list[str], date_str: str) -> list[RawEvent]:
+    """Run all web search queries in parallel (each is an independent Claude API call)."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     all_events: list[RawEvent] = []
     seen_urls: set[str] = set()
-    for query in queries:
-        for event in _web_search_query_to_events(query, date_str):
-            if event.raw_url not in seen_urls:
-                seen_urls.add(event.raw_url)
-                all_events.append(event)
+
+    with ThreadPoolExecutor(max_workers=min(5, len(queries))) as executor:
+        futures = {executor.submit(_web_search_query_to_events, q, date_str): q for q in queries}
+        for future in as_completed(futures):
+            for event in future.result():
+                if event.raw_url not in seen_urls:
+                    seen_urls.add(event.raw_url)
+                    all_events.append(event)
+
     print(f"  [WebSearch] Fetched {len(all_events)} events from {len(queries)} queries")
     return all_events
 

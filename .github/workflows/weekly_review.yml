@@ -50,7 +50,7 @@ jobs:
           if [ -n "${{ github.event.inputs.week }}" ]; then
             WEEK_ARG="--week ${{ github.event.inputs.week }}"
           fi
-          python scripts/run_weekly_review.py $WEEK_ARG
+          python -u scripts/run_weekly_review.py $WEEK_ARG
 
       - name: Commit and push review
         run: |
