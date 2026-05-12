@@ -14,9 +14,13 @@ model:
   default: "claude-sonnet-4-6"
   fast: "claude-haiku-4-5-20251001"
   deep: "claude-opus-4-7"
-  max_tokens_daily: 8000
-  max_tokens_weekly: 16000
-  max_tokens_monthly: 24000
+  # These are starting budgets. claude_client.py auto-continues on truncation,
+  # so even if a report exceeds these, the final output won't be cut mid-sentence.
+  # Higher initial budgets just mean fewer continuation API calls per run.
+  # Chinese reports use ~1.5 tokens/char, so daily=16K handles ~10K Chinese chars.
+  max_tokens_daily: 16000
+  max_tokens_weekly: 24000
+  max_tokens_monthly: 32000
 
 # AI provider fallback chain
 # First provider with a valid API key is tried; on failure the next is attempted.

@@ -99,10 +99,14 @@ def run_prediction_updates(state: TechDailyState) -> list[PredictionUpdate]:
             "company_analyses": today_summary["company_analyses"],
         }, ensure_ascii=False)
 
+        # Returns an ARRAY of N updates (one per open prediction).
+        # Each update has ~6 fields + reasoning text → ~300-500 tokens.
+        # With 30 open predictions the output can exceed 12K tokens, so we
+        # allocate generously here. (Single-object analyzers stay at 4096.)
         results = call_claude_json(
             system=prompt_system,
             user=user_msg,
-            max_tokens=4096,
+            max_tokens=16384,
         )
 
         if not isinstance(results, list):
@@ -151,10 +155,14 @@ def generate_new_predictions(state: TechDailyState) -> list[Prediction]:
             "signal_level": signal_level,
         }, ensure_ascii=False)
 
+        # Returns an ARRAY of 1-6 new predictions (depending on signal_level).
+        # Each prediction has 11 fields including long evidence/criteria text
+        # → ~700-900 tokens per prediction. 6 predictions × 900 = 5400 tokens
+        # plus JSON envelope → 4096 was too tight (failed in production logs).
         results = call_claude_json(
             system=prompt_system,
             user=user_msg,
-            max_tokens=4096,
+            max_tokens=8192,
         )
 
         if not isinstance(results, list):

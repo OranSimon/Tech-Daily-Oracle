@@ -165,10 +165,14 @@ def _analyze_new_items_batch(
     ]
 
     try:
+        # Returns an ARRAY of {item_id, report_snippet} — output scales with
+        # batch size. Daily uses top_n=5 across 3 sources (up to 15 items),
+        # weekly/monthly may pass more. Each snippet is ~150-300 tokens, so
+        # 15 items × 250 = 3750 tokens — 4096 is tight, 8192 is comfortable.
         results = call_claude_json(
             system=prompt_system,
             user=json.dumps({"trending_items": payload}, ensure_ascii=False),
-            max_tokens=4096,
+            max_tokens=8192,
         )
         if isinstance(results, list):
             return {r["item_id"]: r.get("report_snippet", "") for r in results if "item_id" in r}
@@ -239,25 +243,34 @@ def analyze_trending(
             f"(day {days + 1} in trending, velocity: {vel:,.0f})"
         )
 
-    # 5. Assemble report section
+    # 5. Assemble report section (Chinese headers, English proper nouns)
+    period_zh = {"daily": "今日", "weekly": "本周", "monthly": "本月"}.get(
+        snapshot.period, snapshot.period
+    )
     lines: list[str] = [
-        f"\n## 🔥 Trending — {snapshot.period.title()} ({snapshot.snapshot_date})\n"
+        f"\n## 🔥 趋势榜单 — {period_zh} ({snapshot.snapshot_date})\n"
     ]
 
     if cross_hits:
-        lines.append("### ↔️ Cross-List Momentum (GitHub + HuggingFace)\n")
+        lines.append("### ↔️ 跨平台动量（GitHub + HuggingFace 同时上榜）\n")
+        accel_zh = {
+            "accelerating": "加速",
+            "stable": "平稳",
+            "decelerating": "减速",
+            "new": "首次出现",
+        }
         for hit in cross_hits:
             emoji = _ACCEL_EMOJI.get(hit.acceleration, "")
-            status = "first appearance" if hit.acceleration == "new" else hit.acceleration
+            status = accel_zh.get(hit.acceleration, hit.acceleration)
             gh_vel = hit.github_item.velocity_score if hit.github_item else 0
             lines.append(
-                f"- {emoji} **{hit.item_id}** — {status} across both platforms "
-                f"(GH +{gh_vel:,.0f} ⭐, day {hit.days_in_top_lists + 1})"
+                f"- {emoji} **{hit.item_id}** — 两个平台同时{status} "
+                f"(GitHub +{gh_vel:,.0f} ⭐, 上榜第 {hit.days_in_top_lists + 1} 天)"
             )
         lines.append("")
 
     if snapshot.github_items[:top_n]:
-        lines.append("### 🐙 GitHub (OSSInsight velocity)\n")
+        lines.append("### 🐙 GitHub 趋势 (OSSInsight 速度数据)\n")
         for item in snapshot.github_items[:top_n]:
             if item.item_id in cross_ids:
                 continue
@@ -269,19 +282,24 @@ def analyze_trending(
         lines.append("")
 
     if snapshot.hf_paper_items[:top_n]:
-        lines.append("### 📄 HuggingFace Papers\n")
+        lines.append("### 📄 HuggingFace 论文\n")
         for item in snapshot.hf_paper_items[:top_n]:
             days = item.extra.get("days_appeared", 1)
-            days_note = f" · {days}d streak" if days > 1 else ""
+            days_note = f" · 连续上榜 {days} 天" if days > 1 else ""
+            # Fallback snippet — show "(just posted)" if no upvotes yet
+            upvote_note = (
+                "(just posted)" if item.velocity_score == 0
+                else f"(👍 {int(item.velocity_score)})"
+            )
             snippet = item_analyses.get(
                 item.item_id,
-                f"**{item.title}**{days_note}"
+                f"**{item.title}** {upvote_note}{days_note}"
             )
             lines.append(f"- {snippet}")
         lines.append("")
 
     if snapshot.hf_model_items[:top_n]:
-        lines.append("### 🤗 HuggingFace Models\n")
+        lines.append("### 🤗 HuggingFace 模型\n")
         for item in snapshot.hf_model_items[:top_n]:
             if item.item_id in cross_ids:
                 continue

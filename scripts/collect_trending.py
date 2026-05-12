@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 from datetime import date, timedelta
 
 import httpx
@@ -46,6 +47,7 @@ async def _fetch_ossinsight(
     language: str = "",
     top_n: int = 20,
 ) -> list[TrendingItem]:
+    """OSSInsight with retry. Falls back to github.com/trending HTML if 'daily' period fails."""
     items: list[TrendingItem] = []
     params: dict = {
         "period": _OSS_PERIOD.get(period, "past_24_hours"),
@@ -54,39 +56,153 @@ async def _fetch_ossinsight(
     }
     if language:
         params["language"] = language
+
+    # Retry OSSInsight up to 3 times with exponential backoff for transient 5xx errors
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            resp = await client.get(
+                f"{OSSINSIGHT_BASE}/v1/repos/trending",
+                params=params,
+                timeout=25,
+            )
+            resp.raise_for_status()
+            rows = resp.json().get("data", {}).get("rows", [])
+            for i, row in enumerate(rows[:top_n], start=1):
+                repo_name = row.get("repo_name", "")
+                items.append(TrendingItem(
+                    item_id=repo_name,
+                    item_type="github_repo",
+                    source="ossinsight",
+                    title=repo_name,
+                    url=f"https://github.com/{repo_name}",
+                    description=(row.get("description") or "")[:400],
+                    period=period,
+                    rank=i,
+                    velocity_score=float(row.get("stars_increment", 0)),
+                    language=row.get("primary_language") or "",
+                    topics=[],
+                    snapshot_date="",  # stamped by caller
+                    extra={
+                        "forks_increment": row.get("forks_increment", 0),
+                        "prs_increment": row.get("prs_increment", 0),
+                        "issues_increment": row.get("issues_increment", 0),
+                        "total_score": row.get("total_score", 0),
+                        "collection_names": row.get("collection_names", []),
+                    },
+                ))
+            if items:
+                return items
+            break  # 200 OK with empty rows — don't retry, just fall through to fallback
+        except Exception as e:
+            last_err = e
+            if attempt < 2:
+                wait_s = 2 ** attempt   # 1s, then 2s
+                print(f"  [Trending] OSSInsight {period} attempt {attempt + 1}/3 failed ({e}); retrying in {wait_s}s")
+                await asyncio.sleep(wait_s)
+            else:
+                print(f"  [Trending] OSSInsight {period} exhausted retries: {e}")
+
+    # Fallback: scrape github.com/trending HTML — public page, no auth, real velocity data.
+    # Only meaningful for 'daily' period; the trending page mirrors past-24h activity.
+    if period == "daily":
+        print(f"  [Trending] Falling back to github.com/trending HTML scrape")
+        fallback_items = await _fetch_github_trending_html(client, language, top_n)
+        if fallback_items:
+            return fallback_items
+
+    return items
+
+
+# ---------------------------------------------------------------------------
+# Fallback: github.com/trending HTML scraping
+# ---------------------------------------------------------------------------
+
+_GH_TRENDING_ARTICLE_RE = re.compile(r'<article class="Box-row">(.*?)</article>', re.DOTALL)
+_GH_TRENDING_REPO_RE = re.compile(r'<h2 class="h3 lh-condensed">\s*<a href="/([^"]+?)"', re.DOTALL)
+_GH_TRENDING_DESC_RE = re.compile(r'<p class="col-9 color-fg-muted my-1 pr-4">\s*(.*?)\s*</p>', re.DOTALL)
+_GH_TRENDING_STARS_TODAY_RE = re.compile(r'([\d,]+)\s+stars?\s+today')
+_GH_TRENDING_LANG_RE = re.compile(r'itemprop="programmingLanguage">\s*(.+?)\s*</span>')
+_GH_TRENDING_TOTAL_STARS_RE = re.compile(r'aria-label="star"></svg>\s*([\d,]+)', re.DOTALL)
+_GH_TRENDING_FORKS_RE = re.compile(r'/forks">\s*([\d,]+)', re.DOTALL)
+
+
+def _to_int(s: str) -> int:
+    try:
+        return int(s.replace(",", "").strip())
+    except (ValueError, AttributeError):
+        return 0
+
+
+async def _fetch_github_trending_html(
+    client: httpx.AsyncClient, language: str = "", top_n: int = 20
+) -> list[TrendingItem]:
+    """Scrape github.com/trending — public HTML page, no auth, real stars-today velocity.
+
+    Why this exists: OSSInsight API has occasional 500 outages. The GitHub trending
+    page itself is the original source of "trending" semantics with genuine velocity
+    metrics (stars-today), so it's the most reliable fallback when OSSInsight is down.
+    """
+    items: list[TrendingItem] = []
+    url = f"https://github.com/trending/{language}" if language else "https://github.com/trending"
     try:
         resp = await client.get(
-            f"{OSSINSIGHT_BASE}/v1/repos/trending",
-            params=params,
-            timeout=25,
+            url,
+            timeout=20,
+            headers={
+                "User-Agent": "Mozilla/5.0 (TechDailyOracle trending fallback)",
+                "Accept": "text/html",
+            },
         )
         resp.raise_for_status()
-        rows = resp.json().get("data", {}).get("rows", [])
-        for i, row in enumerate(rows[:top_n], start=1):
-            repo_name = row.get("repo_name", "")
+        html = resp.text
+        articles = _GH_TRENDING_ARTICLE_RE.findall(html)
+        for i, article in enumerate(articles[:top_n], start=1):
+            repo_match = _GH_TRENDING_REPO_RE.search(article)
+            if not repo_match:
+                continue
+            # The href captures "owner/\n        repo" — strip whitespace inside
+            owner_repo = re.sub(r"\s+", "", repo_match.group(1).strip())
+            if "/" not in owner_repo:
+                continue
+
+            desc_match = _GH_TRENDING_DESC_RE.search(article)
+            description = re.sub(r"\s+", " ", desc_match.group(1).strip()) if desc_match else ""
+
+            stars_today_match = _GH_TRENDING_STARS_TODAY_RE.search(article)
+            stars_today = _to_int(stars_today_match.group(1)) if stars_today_match else 0
+
+            total_stars_match = _GH_TRENDING_TOTAL_STARS_RE.search(article)
+            total_stars = _to_int(total_stars_match.group(1)) if total_stars_match else 0
+
+            forks_match = _GH_TRENDING_FORKS_RE.search(article)
+            forks = _to_int(forks_match.group(1)) if forks_match else 0
+
+            lang_match = _GH_TRENDING_LANG_RE.search(article)
+            lang = lang_match.group(1).strip() if lang_match else ""
+
             items.append(TrendingItem(
-                item_id=repo_name,
+                item_id=owner_repo,
                 item_type="github_repo",
-                source="ossinsight",
-                title=repo_name,
-                url=f"https://github.com/{repo_name}",
-                description=(row.get("description") or "")[:400],
-                period=period,
+                source="github_trending_html",
+                title=owner_repo,
+                url=f"https://github.com/{owner_repo}",
+                description=description[:400],
+                period="daily",
                 rank=i,
-                velocity_score=float(row.get("stars_increment", 0)),
-                language=row.get("primary_language") or "",
+                velocity_score=float(stars_today),  # real stars-today velocity
+                language=lang,
                 topics=[],
                 snapshot_date="",  # stamped by caller
                 extra={
-                    "forks_increment": row.get("forks_increment", 0),
-                    "prs_increment": row.get("prs_increment", 0),
-                    "issues_increment": row.get("issues_increment", 0),
-                    "total_score": row.get("total_score", 0),
-                    "collection_names": row.get("collection_names", []),
+                    "total_stars": total_stars,
+                    "forks": forks,
+                    "fallback_source": "github.com/trending",
                 },
             ))
+        print(f"  [Trending] github.com/trending HTML fallback: {len(items)} repos")
     except Exception as e:
-        print(f"  [Trending] OSSInsight {period} failed: {e}")
+        print(f"  [Trending] github.com/trending HTML fallback failed: {e}")
     return items
 
 

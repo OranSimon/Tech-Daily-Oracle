@@ -55,7 +55,14 @@ Skip sections with no signal today.]
 
 ## 5. GitHub Trending: Top 3 High-Signal Repos
 
-[For each of the top 3 repos:
+**CRITICAL DATA-INTEGRITY RULE FOR THIS SECTION:**
+- If `github_project_analyses` is **empty** (no pre-analyzed repos in input data), write **only** one line:
+  > 本期 GitHub 趋势数据未通过质量过滤（OSSInsight 数据缺失或返回的均为长期 mega-repo），跳过此节。趋势榜单详见报告末尾的 🔥 趋势榜单 — 今日 一节。
+  Then move to section 6. **Do NOT invent repos from prose mentions elsewhere in the input.** Do not reconstruct entries from Hacker News posts or RSS items — they lack the structured star/fork/license fields and produce misleading analyses.
+- If `github_project_analyses` has 1-3 entries, write entries only for those repos, using their actual data fields. Do not pad with prose-derived projects.
+- If 1-2 entries (not 3), add the line "**Low-signal day for GitHub.**" after them.
+
+[For each repo in `github_project_analyses`:
 
 ### [repo name] — [tagline]
 - **URL:** github.com/owner/repo
@@ -64,9 +71,7 @@ Skip sections with no signal today.]
 - **What it does:** [one sentence]
 - **Why it matters:** [technical judgment — real pain point, real innovation?]
 - **Risk:** [toy project / thin wrapper / promising / strong signal]
-- **Verdict:** [Watch / Skip / Track]
-
-If fewer than 3 quality repos exist today, note "Low-signal day for GitHub" and cover 1–2.]
+- **Verdict:** [Watch / Skip / Track]]
 
 ## 6. Papers & Research Frontiers
 
