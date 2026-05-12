@@ -12,7 +12,8 @@ import os
 import sys
 import time
 import traceback
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import yaml
 
@@ -58,9 +59,15 @@ def _step(name: str) -> None:
 def run_daily(run_date: str | None = None, force: bool = False) -> str:
     cfg = _load_config()
     if run_date is None:
-        # Default to yesterday: the script runs in the morning and reports on
-        # the previous day's events (news fully accumulated by end of prior day).
-        run_date = (date.today() - timedelta(days=1)).isoformat()
+        # Default to "yesterday" in the project's local timezone (Asia/Shanghai).
+        # Why timezone-aware: the GitHub Actions runner uses UTC, but the cron
+        # fires at 23:00 UTC = 07:00 CST next morning. Using UTC's date.today()
+        # would be off-by-one for manual reruns during CST daytime, and naive
+        # subtraction (UTC today − 1) gives "day before yesterday in CST" at
+        # cron time. Anchoring to CST avoids both off-by-one cases.
+        tz_name = cfg.get("run", {}).get("timezone", "Asia/Shanghai")
+        local_today = datetime.now(ZoneInfo(tz_name)).date()
+        run_date = (local_today - timedelta(days=1)).isoformat()
 
     # Idempotency: skip if this date's report already exists (unless --force)
     _existing = os.path.join(ROOT, "reports", "daily", f"{run_date}.md")

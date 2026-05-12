@@ -11,6 +11,7 @@ import json
 import os
 import sys
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import yaml
 
@@ -175,7 +176,9 @@ def _load_prediction_performance(month_str: str) -> dict:
 
 def run_monthly_review(month_str: str | None = None) -> str:
     cfg = _load_config()
-    today = date.today()
+    # Local-timezone "today" so "previous month" is computed in CST, not UTC.
+    tz_name = cfg.get("run", {}).get("timezone", "Asia/Shanghai")
+    today = datetime.now(ZoneInfo(tz_name)).date()
 
     if month_str is None:
         # Default to the previous calendar month.

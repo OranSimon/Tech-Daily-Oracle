@@ -10,7 +10,8 @@ import argparse
 import json
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import yaml
 
@@ -112,7 +113,10 @@ def _load_resolved_predictions_week(week_str: str) -> list[dict]:
 
 def run_weekly_review(week_str: str | None = None) -> str:
     cfg = _load_config()
-    today = date.today()
+    # Local-timezone "today" so the ISO-week calculation matches the CST workweek
+    # (the cron fires at 23:00 UTC Fri = 07:00 CST Sat).
+    tz_name = cfg.get("run", {}).get("timezone", "Asia/Shanghai")
+    today = datetime.now(ZoneInfo(tz_name)).date()
 
     if week_str is None:
         # Default to the ISO week that contains the most recent Friday (inclusive today).
