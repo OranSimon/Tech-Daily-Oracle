@@ -102,7 +102,7 @@ def run_prediction_updates(state: TechDailyState) -> list[PredictionUpdate]:
         results = call_claude_json(
             system=prompt_system,
             user=user_msg,
-            max_tokens=2048,
+            max_tokens=4096,
         )
 
         if not isinstance(results, list):
@@ -154,7 +154,7 @@ def generate_new_predictions(state: TechDailyState) -> list[Prediction]:
         results = call_claude_json(
             system=prompt_system,
             user=user_msg,
-            max_tokens=2048,
+            max_tokens=4096,
         )
 
         if not isinstance(results, list):

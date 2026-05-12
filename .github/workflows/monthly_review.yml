@@ -1,14 +1,19 @@
 name: Tech Monthly Review
 
+# Runs on the 1st of each month at 02:00 UTC.
+# By this time all of the previous month's daily reports (last weekday at 23:00 UTC)
+# and the last weekly review (last Friday at 23:00 UTC + ~90 min runtime) are committed.
+# The monthly script defaults month_str to the previous calendar month automatically.
+# Guard: skips cleanly if the previous month has fewer than 2 weekly reviews
+#        AND fewer than 10 daily reports.
+
 on:
-  # Last working day of each month — approximate via last Friday or day 28-31
   schedule:
-    # Run on the 28th of each month at 10:00 UTC; will cover most months
-    - cron: '0 10 28 * *'
+    - cron: '0 2 1 * *'
   workflow_dispatch:
     inputs:
       month:
-        description: 'Month string e.g. 2026-05'
+        description: 'Month string e.g. 2026-05 (default: previous month)'
         required: false
         type: string
 

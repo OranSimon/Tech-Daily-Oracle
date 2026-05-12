@@ -1,15 +1,24 @@
 name: Tech Daily Brief
 
+# Runs Monday–Thursday only.
+# Friday is handled by the Weekly Review workflow, which runs daily first.
+
 on:
   schedule:
-    # Weekdays at 23:00 UTC = ~07:00 CST next day
-    - cron: '0 23 * * 1-5'
+    # Mon–Thu at 23:00 UTC = Tue–Fri at 07:00 CST (next morning).
+    # Reports on the PREVIOUS day's events (run_daily defaults to yesterday).
+    - cron: '0 23 * * 1-4'
   workflow_dispatch:
     inputs:
       run_date:
-        description: 'Run date (YYYY-MM-DD), default: today'
+        description: 'Run date (YYYY-MM-DD), default: yesterday'
         required: false
         type: string
+      force:
+        description: 'Regenerate even if report already exists'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -52,7 +61,11 @@ jobs:
           if [ -n "${{ github.event.inputs.run_date }}" ]; then
             DATE_ARG="--date ${{ github.event.inputs.run_date }}"
           fi
-          python -u scripts/run_daily.py $DATE_ARG
+          FORCE_ARG=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            FORCE_ARG="--force"
+          fi
+          python -u scripts/run_daily.py $DATE_ARG $FORCE_ARG
 
       - name: Commit and push report
         run: |

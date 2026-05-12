@@ -266,5 +266,6 @@ def call_claude_json(
     text = raw.strip()
     if text.startswith("```"):
         lines = text.split("\n")
-        text = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
+        # Use .strip() on the last line so trailing whitespace doesn't prevent fence removal
+        text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
     return json.loads(text)

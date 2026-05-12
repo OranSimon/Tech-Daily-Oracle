@@ -30,11 +30,14 @@ from analyze_social_signals import analyze_social_signals
 from analyze_macro_impact import analyze_macro_impact
 from update_predictions import run_prediction_updates, generate_new_predictions
 from generate_report import generate_daily_report
+from collect_trending import collect_trending_snapshot
+from analyze_trending import analyze_trending
 from storage import (
     save_daily_report, save_predictions, append_events,
     load_open_predictions, load_recent_reports,
     load_recent_weekly_reviews, load_recent_monthly_reviews,
     load_topic_trends_recent, load_company_mentions_recent,
+    save_trending_snapshot, load_trending_history,
 )
 from publish_notion import publish_to_notion
 
@@ -52,10 +55,20 @@ def _step(name: str) -> None:
     print(f"{'='*60}")
 
 
-def run_daily(run_date: str | None = None) -> str:
+def run_daily(run_date: str | None = None, force: bool = False) -> str:
     cfg = _load_config()
     if run_date is None:
-        run_date = date.today().isoformat()
+        # Default to yesterday: the script runs in the morning and reports on
+        # the previous day's events (news fully accumulated by end of prior day).
+        run_date = (date.today() - timedelta(days=1)).isoformat()
+
+    # Idempotency: skip if this date's report already exists (unless --force)
+    _existing = os.path.join(ROOT, "reports", "daily", f"{run_date}.md")
+    if os.path.exists(_existing) and not force:
+        print(f"\n  [Daily] Report for {run_date} already exists — skipping "
+              f"(pass --force to regenerate).")
+        with open(_existing, encoding="utf-8") as _f:
+            return _f.read()
 
     print(f"\n{'#'*60}")
     print(f"  Tech Daily Agent — {run_date}")
@@ -95,6 +108,16 @@ def run_daily(run_date: str | None = None) -> str:
         state.source_warnings.append(f"Source collection error: {e}")
         state.raw_events = []
     print(f"  Collection took {time.time()-t0:.1f}s")
+
+    # -----------------------------------------------------------------------
+    # Step 2.5: Trending Snapshot Collection (parallel with source collection)
+    # -----------------------------------------------------------------------
+    _step("Collecting trending snapshot (OSSInsight + HuggingFace)")
+    trending_snapshot = None
+    try:
+        trending_snapshot = collect_trending_snapshot("daily", run_date, cfg)
+    except Exception as e:
+        print(f"  [ERROR] Trending collection failed (non-fatal): {e}")
 
     # -----------------------------------------------------------------------
     # Step 3: Normalize & Deduplicate
@@ -145,6 +168,18 @@ def run_daily(run_date: str | None = None) -> str:
     except Exception as e:
         print(f"  [ERROR] GitHub analysis failed: {e}")
         state.confidence_flags.append(f"GitHub analysis error: {e}")
+
+    # -----------------------------------------------------------------------
+    # Step 7.5: Trending Analysis
+    # -----------------------------------------------------------------------
+    _step("Analyzing trending items")
+    if trending_snapshot is not None:
+        try:
+            history = load_trending_history(days=30)
+            top_n = cfg.get("trending", {}).get("top_n", 5)
+            state.trending_analysis = analyze_trending(trending_snapshot, history, top_n=top_n)
+        except Exception as e:
+            print(f"  [ERROR] Trending analysis failed (non-fatal): {e}")
 
     # -----------------------------------------------------------------------
     # Step 8: Social Signal Analysis
@@ -202,6 +237,11 @@ def run_daily(run_date: str | None = None) -> str:
     report_path = save_daily_report(run_date, state.final_report)
     save_predictions(state.new_predictions, state.prediction_updates)
     append_events(state)
+    if trending_snapshot is not None:
+        try:
+            save_trending_snapshot(trending_snapshot)
+        except Exception as e:
+            print(f"  [Storage] Trending snapshot save failed (non-fatal): {e}")
 
     if cfg.get("notion", {}).get("enabled", False):
         try:
@@ -232,6 +272,8 @@ def run_daily(run_date: str | None = None) -> str:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Tech Daily Agent")
-    parser.add_argument("--date", help="Run date YYYY-MM-DD (default: today)")
+    parser.add_argument("--date", help="Run date YYYY-MM-DD (default: yesterday)")
+    parser.add_argument("--force", action="store_true",
+                        help="Regenerate even if a report already exists for this date")
     args = parser.parse_args()
-    run_daily(args.date)
+    run_daily(args.date, force=args.force)

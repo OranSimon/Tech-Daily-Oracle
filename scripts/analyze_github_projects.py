@@ -136,7 +136,10 @@ def analyze_github_projects(
                     "topics": topics,
                 },
                 "readme_excerpt": description[:500],
-                "contributors_count": details.get("watchers_count", 0),
+                # subscribers_count = people watching for notifications (genuine engagement).
+                # watchers_count is a legacy alias for stargazers_count — do not use.
+                # True contributor count requires a separate /contributors API call; skipped here.
+                "watchers_count": details.get("subscribers_count", 0),
                 "context": f"Analyzing {len(enriched_data)} repos, selecting top {top_n}",
             }, ensure_ascii=False)
 

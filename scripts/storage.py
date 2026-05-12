@@ -8,7 +8,7 @@ import os
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from state import TechDailyState, Prediction, PredictionUpdate, Report
+from state import TechDailyState, Prediction, PredictionUpdate, Report, TrendingSnapshot
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, "data")
@@ -323,3 +323,42 @@ def load_topic_trends_recent(days: int = 30) -> list[dict]:
 
 def load_company_mentions_recent(days: int = 90) -> list[dict]:
     return _load_jsonl_since(os.path.join(DATA_DIR, "company_mentions.jsonl"), days)
+
+
+# ---------------------------------------------------------------------------
+# Trending snapshots
+# ---------------------------------------------------------------------------
+
+TRENDING_LOG = os.path.join(DATA_DIR, "trending_snapshots.jsonl")
+
+
+def save_trending_snapshot(snapshot: TrendingSnapshot) -> None:
+    """Append one row per trending item to trending_snapshots.jsonl."""
+    _ensure_dirs()
+    all_items = (
+        getattr(snapshot, "github_items", [])
+        + getattr(snapshot, "hf_paper_items", [])
+        + getattr(snapshot, "hf_model_items", [])
+    )
+    if not all_items:
+        return
+    with open(TRENDING_LOG, "a", encoding="utf-8") as f:
+        for item in all_items:
+            row = {
+                "snapshot_date": snapshot.snapshot_date,
+                "period": snapshot.period,
+                "item_id": item.item_id,
+                "item_type": item.item_type,
+                "source": item.source,
+                "title": item.title,
+                "rank": item.rank,
+                "velocity_score": item.velocity_score,
+                "language": item.language,
+            }
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    print(f"  [Storage] Appended {len(all_items)} trending items to snapshot log")
+
+
+def load_trending_history(days: int = 30) -> list[dict]:
+    """Load trending snapshot rows from the past N days."""
+    return _load_jsonl_since(TRENDING_LOG, days)

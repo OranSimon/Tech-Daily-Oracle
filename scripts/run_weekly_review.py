@@ -17,8 +17,13 @@ import yaml
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from claude_client import call_claude, DEFAULT_MODEL
-from storage import save_weekly_review, load_recent_reports, load_open_predictions
+from storage import (
+    save_weekly_review, load_recent_reports, load_open_predictions,
+    load_trending_history,
+)
 from score_predictions import compute_scorecard
+from collect_trending import collect_trending_snapshot
+from analyze_trending import analyze_trending
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -110,18 +115,45 @@ def run_weekly_review(week_str: str | None = None) -> str:
     today = date.today()
 
     if week_str is None:
-        week_str = _iso_week(today)
+        # Default to the ISO week that contains the most recent Friday (inclusive today).
+        # (today.weekday() - 4) % 7  == 0 when today IS Friday → days_back = 0 → use today.
+        # Works correctly whether this runs on Friday (the workflow day) or Saturday/later.
+        days_since_friday = (today.weekday() - 4) % 7
+        last_friday = today - timedelta(days=days_since_friday)
+        week_str = _iso_week(last_friday)
+
+    # Guard: ensure enough daily reports exist for this week
+    daily_reports = _load_week_reports(week_str)
+    min_daily = cfg.get("review_guards", {}).get("min_daily_for_weekly", 3)
+    if len(daily_reports) < min_daily:
+        print(
+            f"\n  [Weekly] Only {len(daily_reports)} daily report(s) found for "
+            f"{week_str} (need ≥ {min_daily}). Weekly review skipped.\n"
+        )
+        return ""
 
     print(f"\n{'#'*60}")
     print(f"  Tech Weekly Review — {week_str}")
     print(f"{'#'*60}\n")
 
     prompt_system = _load_prompt()
-    daily_reports = _load_week_reports(week_str)
+    # daily_reports was already loaded by the guard check above
     topic_trends = _load_topic_trends_week(week_str)
     resolved_predictions = _load_resolved_predictions_week(week_str)
     open_predictions = load_open_predictions()
     scorecard = compute_scorecard()
+
+    # Weekly trending: collect rolling 7-day window, analyse with history
+    trending_section = ""
+    try:
+        top_n = cfg.get("trending", {}).get("top_n", 5)
+        weekly_snapshot = collect_trending_snapshot("weekly", today.isoformat(), cfg)
+        history = load_trending_history(days=60)
+        weekly_trending = analyze_trending(weekly_snapshot, history, top_n=top_n)
+        trending_section = weekly_trending.report_section
+        print(f"  [Trending] Weekly snapshot collected")
+    except Exception as e:
+        print(f"  [Trending] Weekly collection failed (non-fatal): {e}")
 
     # Load prediction updates this week
     all_preds = []
@@ -162,6 +194,7 @@ def run_weekly_review(week_str: str | None = None) -> str:
         ],
         "brier_scores": scorecard,
         "topic_trend_history": topic_trends,
+        "trending_weekly_summary": trending_section or None,
     }, ensure_ascii=False)
 
     max_tokens = cfg.get("model", {}).get("max_tokens_weekly", 16000)
@@ -174,6 +207,9 @@ def run_weekly_review(week_str: str | None = None) -> str:
         max_tokens=max_tokens,
         cache_system=True,
     )
+
+    if trending_section:
+        review = review + "\n\n---\n" + trending_section
 
     path = save_weekly_review(week_str, review)
     print(f"  Weekly review saved: {path}")

@@ -184,6 +184,61 @@ class MacroImpactAnalysis:
 
 
 # ---------------------------------------------------------------------------
+# Trending types
+# ---------------------------------------------------------------------------
+
+@dataclass
+class TrendingItem:
+    item_id: str            # "owner/repo" | arxiv_id | "owner/model-id"
+    item_type: str          # "github_repo" | "hf_paper" | "hf_model"
+    source: str             # "ossinsight" | "huggingface_papers" | "huggingface_models"
+    title: str
+    url: str
+    description: str
+    period: str             # "daily" | "weekly" | "monthly"
+    rank: int               # position in list (1 = top)
+    velocity_score: float   # stars_increment (GH) | upvotes sum (papers) | trendingScore (models)
+    language: str           # primary language (GH) or "" (papers)
+    topics: list[str]       # inferred topic tags
+    snapshot_date: str      # YYYY-MM-DD
+    extra: dict[str, Any]   # raw API fields (authors, days_appeared, pipeline_tag, …)
+
+
+@dataclass
+class CrossListHit:
+    """An entity that appears in both the GitHub and HuggingFace trending lists."""
+    item_id: str
+    match_type: str             # "exact" — same owner/name identifier
+    github_item: Any            # TrendingItem | None
+    hf_item: Any                # TrendingItem | None
+    acceleration: str           # "accelerating" | "stable" | "decelerating" | "new"
+    days_in_top_lists: int
+    rank_history: list[int]     # last N days, lower = higher on list
+    velocity_history: list[float]
+
+
+@dataclass
+class TrendingSnapshot:
+    snapshot_date: str
+    period: str                 # "daily" | "weekly" | "monthly"
+    github_items: list[TrendingItem]
+    hf_paper_items: list[TrendingItem]
+    hf_model_items: list[TrendingItem]
+
+
+@dataclass
+class TrendingAnalysis:
+    snapshot_date: str
+    period: str
+    top_github: list[TrendingItem]
+    top_hf_papers: list[TrendingItem]
+    top_hf_models: list[TrendingItem]
+    cross_list_hits: list[CrossListHit]
+    item_analyses: dict[str, str]   # item_id → report snippet
+    report_section: str             # formatted markdown, injected into report
+
+
+# ---------------------------------------------------------------------------
 # Prediction types
 # ---------------------------------------------------------------------------
 
@@ -273,6 +328,9 @@ class TechDailyState:
     # Quality flags
     source_warnings: list[str] = field(default_factory=list)
     confidence_flags: list[str] = field(default_factory=list)
+
+    # Trending analysis (daily snapshot)
+    trending_analysis: Any = field(default=None)  # TrendingAnalysis | None
 
     # Final output
     final_report: str = ""

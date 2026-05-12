@@ -34,7 +34,8 @@ def _analyze_one_paper(
                 "abstract": event.summary,
                 "authors": authors,
                 "institution": institution,
-                "source": event.source_name if hasattr(event, "source_name") else event.source_type,
+                # source_name is stored in metadata by normalize_sources.py (not a direct field)
+                "source": event.metadata.get("source_name", event.source_type),
                 "categories": event.topics,
                 "link": event.primary_source_url,
                 "arxiv_id": arxiv_id,

@@ -51,22 +51,24 @@ async def _fetch_rss(client: httpx.AsyncClient, feed: dict[str, Any], cutoff: da
         root = ET.fromstring(resp.text)
         ns = {"atom": "http://www.w3.org/2005/Atom"}
 
-        # Atom feed
-        entries = root.findall("atom:entry", ns) or root.findall(".//item")
-        # RSS feed
+        # Try Atom entries first, then fall back to RSS <item> elements
+        entries = root.findall("atom:entry", ns)
         if not entries:
             entries = root.findall(".//item")
 
         for entry in entries:
             # Try both Atom and RSS field names
             title = (
-                _text(entry, "title")
-                or _text(entry, "atom:title", ns)
+                _text(entry, "atom:title", ns)
+                or _text(entry, "title")
                 or ""
             )
+            # Atom <link> stores the URL in the href attribute, not .text
+            atom_link_el = entry.find("atom:link", ns)
+            atom_link = (atom_link_el.get("href", "") if atom_link_el is not None else "")
             link = (
-                _text(entry, "link")
-                or _text(entry, "atom:link", ns)
+                atom_link
+                or _text(entry, "link")
                 or entry.get("href", "")
             )
             pub = (
@@ -221,7 +223,7 @@ async def _fetch_hf_daily_papers(client: httpx.AsyncClient, hf_token: str | None
                 metadata={
                     "arxiv_id": arxiv_id,
                     "authors": authors,
-                    "upvotes": p.get("numComments", 0),
+                    "upvotes": p.get("upvotes", p.get("numUpvotes", 0)),
                     "hf_paper_url": f"https://huggingface.co/papers/{arxiv_id}",
                 },
             ))
@@ -289,6 +291,8 @@ async def _fetch_arxiv(client: httpx.AsyncClient, categories: list[str],
                         "category": cat,
                         "authors": authors,
                         "arxiv_url": arxiv_url,
+                        # Extract bare ID (e.g. "2501.12345") from the full abs URL
+                        "arxiv_id": arxiv_url.split("/abs/")[-1] if "/abs/" in arxiv_url else "",
                     },
                 ))
         except Exception as e:

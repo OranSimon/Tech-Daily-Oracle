@@ -55,9 +55,13 @@ def _find_hot_subjects(events: list[NormalizedEvent]) -> list[dict[str, Any]]:
 
     for e in events:
         if e.source_type == "github":
-            stars_today = e.metadata.get("stars", 0) if hasattr(e, "metadata") else 0
-            if stars_today > 500 and e.primary_source_url not in seen:
-                seen.add(e.primary_source_url)
+            # metadata["stars"] is total stargazers_count, not new stars today.
+            # GitHub trending events come from newly-created repos (created yesterday),
+            # so their total star count is a reasonable proxy for viral traction.
+            total_stars = e.metadata.get("stars", 0) if hasattr(e, "metadata") else 0
+            url_key = f"url:{e.primary_source_url}"
+            if total_stars > 500 and url_key not in seen:
+                seen.add(url_key)
                 hot.append({
                     "subject": e.canonical_title,
                     "subject_type": "github_project",

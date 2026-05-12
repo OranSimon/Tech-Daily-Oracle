@@ -134,5 +134,10 @@ def generate_daily_report(state: TechDailyState) -> str:
         max_tokens=max_tokens,
         cache_system=True,
     )
+
+    # Append the pre-computed trending section (OSSInsight + HuggingFace)
+    if state.trending_analysis is not None and state.trending_analysis.report_section:
+        report = report + "\n\n---\n" + state.trending_analysis.report_section
+
     print(f"  [Report] Generated {len(report)} characters")
     return report

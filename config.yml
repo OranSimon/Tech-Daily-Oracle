@@ -39,6 +39,23 @@ ai_providers:
     fast:    "gemini-2.5-flash-lite"  # stable, cheapest Gemini option
     deep:    "gemini-3.1-pro-preview" # most capable available (preview, production-grade)
 
+trending:
+  enabled: true
+  top_n: 5                   # top N items per source per period shown in reports
+
+  ossinsight:
+    # OSSInsight REST API — public endpoint, no auth required for trending
+    # https://api.ossinsight.io/v1/repos/trending
+    # period is mapped automatically: daily→past_24_hours, weekly→past_week, monthly→past_month
+    enabled: true
+    languages: []            # [] = all languages; e.g. ["Python", "TypeScript"] to filter
+
+  huggingface:
+    papers: true             # daily editorial papers; rolling window via date aggregation
+    models: true             # HF's internal ~7-day trending score (sort=trending)
+    # Note: monthly model trending uses stored daily snapshots (data/trending_snapshots.jsonl)
+    # rather than a native HF monthly endpoint, which does not exist.
+
 sources:
   github_trending:
     enabled: true
@@ -107,3 +124,10 @@ output:
 
 sec:
   user_email: "[EMAIL_ADDRESS]"           # SEC_USER_EMAIL env var
+
+# Minimum data requirements before each review tier runs.
+# If thresholds are not met the script exits cleanly with a notice (no error).
+review_guards:
+  min_daily_for_weekly: 3        # need ≥ N daily reports in the current week
+  min_weekly_for_monthly: 2      # need ≥ N weekly reviews in the target month
+  min_daily_for_monthly: 10      # OR ≥ N daily reports (either condition is enough)

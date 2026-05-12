@@ -16,11 +16,7 @@ rss_feeds:
     priority: 1
     topics: [ai]
 
-  - name: "Anthropic News"
-    url: "https://www.anthropic.com/rss.xml"
-    source_type: company
-    priority: 1
-    topics: [ai]
+  # Anthropic does not publish a public RSS feed — covered by web search queries instead
 
   - name: "Google DeepMind Blog"
     url: "https://deepmind.google/blog/rss.xml"
@@ -34,8 +30,8 @@ rss_feeds:
     priority: 1
     topics: [ai]
 
-  - name: "Meta AI Blog"
-    url: "https://ai.meta.com/blog/rss/"
+  - name: "Meta Engineering Blog"
+    url: "https://engineering.fb.com/feed/"
     source_type: company
     priority: 1
     topics: [ai]
@@ -109,11 +105,7 @@ rss_feeds:
     priority: 1
     topics: [ai, papers]
 
-  - name: "Papers with Code Newsletter"
-    url: "https://paperswithcode.com/latest.rss"
-    source_type: aggregator
-    priority: 2
-    topics: [papers]
+  # Papers with Code RSS feed is broken — ML papers covered by HF daily_papers + arXiv collectors
 
   # --- Open Source ---
   - name: "GitHub Blog"
@@ -129,8 +121,8 @@ rss_feeds:
     priority: 2
     topics: [semiconductors, infrastructure]
 
-  - name: "AnandTech"
-    url: "https://www.anandtech.com/rss/"
+  - name: "Tom's Hardware"
+    url: "https://www.tomshardware.com/feeds/all"
     source_type: media
     priority: 2
     topics: [semiconductors, hardware]
@@ -143,8 +135,8 @@ rss_feeds:
     topics: [china_tech, policy]
 
   # --- Macro / Geopolitical ---
-  - name: "Reuters Technology"
-    url: "https://feeds.reuters.com/reuters/technologyNews"
+  - name: "NYT Technology"
+    url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"
     source_type: media
     priority: 2
     topics: [policy, macro]

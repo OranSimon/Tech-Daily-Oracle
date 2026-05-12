@@ -1,15 +1,24 @@
 name: Tech Weekly Review
 
+# Runs every Friday at 23:00 UTC (Sat 07:00 CST).
+# Step 1 — Daily brief for Friday (yesterday in UTC = Friday's news in CST).
+# Step 2 — Weekly review covering Mon–Fri of the just-completed ISO week.
+# The weekly review script guards itself: if < 3 daily reports exist it exits cleanly.
+
 on:
   schedule:
-    # Friday at 10:00 UTC = ~18:00 CST
-    - cron: '0 10 * * 5'
+    - cron: '0 23 * * 5'
   workflow_dispatch:
     inputs:
       week:
-        description: 'ISO week string e.g. 2026-W19'
+        description: 'ISO week string e.g. 2026-W19 (default: last completed week)'
         required: false
         type: string
+      force_daily:
+        description: 'Force-regenerate the daily report even if it exists'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -17,7 +26,7 @@ permissions:
 jobs:
   weekly:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120     # daily (60 min) + weekly (30 min) + buffer
 
     steps:
       - name: Checkout
@@ -37,6 +46,32 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # ── Step 1: Daily brief (Friday) ────────────────────────────────────────
+      - name: Run daily brief (Friday)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          SEC_USER_EMAIL: ${{ secrets.SEC_USER_EMAIL }}
+        run: |
+          FORCE_ARG=""
+          if [ "${{ github.event.inputs.force_daily }}" = "true" ]; then
+            FORCE_ARG="--force"
+          fi
+          python -u scripts/run_daily.py $FORCE_ARG
+
+      - name: Commit daily report
+        run: |
+          git config user.name "Tech Daily Agent"
+          git config user.email "actions@github.com"
+          git add reports/daily/ data/
+          git diff --staged --quiet || git commit -m "chore: daily brief $(date +%Y-%m-%d)"
+          git push
+
+      # ── Step 2: Weekly review ────────────────────────────────────────────────
       - name: Run weekly review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -52,7 +87,7 @@ jobs:
           fi
           python -u scripts/run_weekly_review.py $WEEK_ARG
 
-      - name: Commit and push review
+      - name: Commit weekly review
         run: |
           git config user.name "Tech Daily Agent"
           git config user.email "actions@github.com"
