@@ -39,7 +39,42 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
                             "AI regulation", "EU AI Act", "policy", "geopolitical"],
     "big_tech_strategy": ["earnings", "capex", "layoffs", "acquisition", "M&A", "antitrust",
                            "restructuring"],
+    # --- Cross-domain / broad interest topics ---
+    # general_interesting: no keywords — assigned programmatically for HN ≥300, non-tech
+    "general_interesting": [],
+    "science_breakthrough": ["particle physics", "quantum mechanics", "quantum physics",
+                              "chemistry breakthrough", "molecule", "biology discovery",
+                              "genetics", "CRISPR", "protein folding", "evolution",
+                              "Nobel Prize", "scientific discovery"],
+    "health_biotech": ["FDA approval", "clinical trial", "drug approval", "vaccine",
+                       "cancer treatment", "genomics", "longevity", "pandemic", "outbreak",
+                       "biotech", "pharmaceutical", "mRNA", "gene therapy",
+                       "antibiotic resistance"],
+    "global_events": ["earthquake", "hurricane", "typhoon", "flood", "volcanic eruption",
+                      "natural disaster", "pandemic", "epidemic", "global crisis",
+                      "UN resolution", "G7 summit", "G20 summit"],
+    "astronomy_space": ["telescope", "galaxy", "black hole", "dark matter", "dark energy",
+                         "exoplanet", "asteroid", "NASA", "ESA", "rocket launch",
+                         "satellite orbit", "ISS", "James Webb", "JWST", "cosmology",
+                         "supernova", "neutron star", "gravitational wave", "astronaut",
+                         "lunar mission", "Mars mission", "SpaceX Starship"],
+    "materials_science": ["superconductor", "graphene", "solid-state battery",
+                           "energy storage material", "nanomaterial", "metamaterial",
+                           "2D material", "perovskite", "room-temperature superconductor",
+                           "topological material", "quantum material", "advanced alloy"],
 }
+
+# Core tech topics used in cross-domain logic
+_CORE_TECH_TOPICS = frozenset({
+    "ai_models", "ai_agents", "embodied_ai_robotics", "ai_infrastructure",
+    "semiconductors", "startups_unicorns", "papers_research", "developer_tools",
+    "autonomous_systems",
+})
+# Science/global topics that, when co-occurring with a tech topic, earn a cross-domain boost
+_CROSS_DOMAIN_TOPICS = frozenset({
+    "science_breakthrough", "health_biotech", "astronomy_space",
+    "materials_science", "global_events",
+})
 
 COMPANY_KEYWORDS: dict[str, list[str]] = {
     "Apple": ["Apple", "AAPL", "iPhone", "Mac", "iOS", "WWDC"],
@@ -146,6 +181,9 @@ def _score_importance(raw: RawEvent, topics: list[str], companies: list[str]) ->
                   "papers_research", "startups_unicorns"}
     if any(t in high_prio for t in topics):
         score += 0.1
+    # Cross-domain boost: AI/CS + science/global co-occurrence signals rare & important events
+    if any(t in _CORE_TECH_TOPICS for t in topics) and any(t in _CROSS_DOMAIN_TOPICS for t in topics):
+        score += 0.15
     return min(1.0, score)
 
 
@@ -169,6 +207,14 @@ def normalize_events(raw_events: list[RawEvent], run_date: str = "") -> list[Nor
         combined_text = f"{raw.raw_title} {raw.raw_content}"
         topics = _detect_topics(combined_text)
         companies = _detect_companies(combined_text)
+
+        # Hacker News high-score stories with no core-tech topic → tag as general_interesting
+        # These are genuinely interesting stories that would pass HN's community filter at ≥300.
+        if (raw.source_type == "hacker_news"
+                and raw.metadata.get("score", 0) >= 300
+                and not any(t in _CORE_TECH_TOPICS for t in topics)):
+            topics = ["general_interesting"] + [t for t in topics if t != "general"]
+
         source_type = _infer_source_type(raw)
         event_type = _infer_event_type(raw, topics)
         importance = _score_importance(raw, topics, companies)

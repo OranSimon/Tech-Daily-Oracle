@@ -149,14 +149,36 @@ Format:
 
 If no qualifying macro event: "今日无需关注的宏观地缘事件。"]
 
-## 12. Market Signal / Stock Watch
+## 12. Cross-Domain Signals
+
+[Cover natural science, health, space, and global events that have a meaningful technology implication.
+
+Apply the tech-implication gate — only include items meeting at least one criterion:
+- Supply-chain or infrastructure impact on the tech sector
+- Scientific breakthrough with compute / AI crossover potential
+- Capital or talent signal (major government program, lab formation, big funding)
+- Landmark discovery with broad civilizational significance
+- Global event (disaster, pandemic, policy) with clear tech sector transmission path
+
+Cap: **at most 5 items**. Skip the entire section if no qualifying events.
+
+Format for each item:
+- **[Event / Discovery Name]** — [field: astronomy / medicine / physics / materials / global event]
+- **概述:** [one sentence]
+- **技术传导:** [specific path — compute demand, materials sourcing, regulatory pressure, etc.]
+- **信号强度:** [strong / medium / weak]
+- **相关公司/机构:** [if any]
+
+If no qualifying cross-domain events: "今日无需关注的跨域信号。"]
+
+## 13. Market Signal / Stock Watch
 
 [Phase 3/4 feature — skip unless MarketSignalAgent is enabled.
 
 If enabled, brief output per tracked ticker:
 - **TICKER:** [conclusion] — [entry quality] — [buy/sell observation point]]
 
-## 13. Open Prediction Updates
+## 14. Open Prediction Updates
 
 [Review all open predictions with new evidence today.
 
@@ -169,7 +191,7 @@ For each prediction affected:
 
 If no predictions affected: "今日无预测更新。"]
 
-## 14. New Predictions
+## 15. New Predictions
 
 [Generate 3–5 predictions on normal signal days. Format:
 
@@ -182,7 +204,7 @@ If no predictions affected: "今日无预测更新。"]
 - **Falsification condition:** [what single event would disprove this]
 - **Signals to monitor:** [concrete signals and thresholds]]
 
-## 15. Watchlist Changes
+## 16. Watchlist Changes
 
 [Note any watchlist additions or removals recommended today.
 
@@ -194,7 +216,7 @@ Format:
 
 ]
 
-## 16. Source Coverage & Confidence Notes
+## 17. Source Coverage & Confidence Notes
 
 [Brief metadata:
 - Sources checked today: [list]
@@ -202,7 +224,7 @@ Format:
 - Overall confidence: [high / medium / low]
 - Coverage gaps: [what was not checked]]
 
-## 17. Appendix: Source Links
+## 18. Appendix: Source Links
 
 [Key URLs referenced in this report. Group by section.]
 

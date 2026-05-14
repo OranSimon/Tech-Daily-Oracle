@@ -95,7 +95,7 @@ sources:
 
   web_search:
     enabled: true
-    queries_per_run: 15
+    queries_per_run: 15   # 10 core CS/AI + 5 cross-domain (science, health, space, disaster, materials)
     results_per_query: 5
 
 github:

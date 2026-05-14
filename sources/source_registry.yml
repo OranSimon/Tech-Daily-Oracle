@@ -134,6 +134,37 @@ rss_feeds:
     priority: 2
     topics: [china_tech, policy]
 
+  # --- Science / Health / Space ---
+  - name: "Nature News"
+    url: "https://feeds.nature.com/nature/rss/current"
+    source_type: media
+    priority: 1
+    topics: [science_breakthrough, health_biotech, astronomy_space, materials_science]
+
+  - name: "Quanta Magazine"
+    url: "https://www.quantamagazine.org/feed/"
+    source_type: media
+    priority: 1
+    topics: [science_breakthrough, astronomy_space, materials_science]
+
+  - name: "STAT News"
+    url: "https://www.statnews.com/feed/"
+    source_type: media
+    priority: 2
+    topics: [health_biotech]
+
+  - name: "SpaceNews"
+    url: "https://spacenews.com/feed/"
+    source_type: media
+    priority: 2
+    topics: [astronomy_space]
+
+  - name: "Science Magazine"
+    url: "https://www.science.org/rss/news_current.xml"
+    source_type: media
+    priority: 1
+    topics: [science_breakthrough, health_biotech, materials_science]
+
   # --- Macro / Geopolitical ---
   - name: "NYT Technology"
     url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"

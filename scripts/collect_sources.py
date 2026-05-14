@@ -408,6 +408,7 @@ async def _fetch_github_trending(client: httpx.AsyncClient, github_token: str | 
 # ---------------------------------------------------------------------------
 
 _WEB_SEARCH_QUERIES = [
+    # --- Core CS / AI beats ---
     "major AI model releases or announcements in the last 24 hours",
     "AI startup funding rounds or unicorn news today",
     "GPU chip semiconductor supply chain news today",
@@ -418,6 +419,12 @@ _WEB_SEARCH_QUERIES = [
     "GitHub trending open source AI developer tools today",
     "AI chip export controls trade policy tech regulation today",
     "AI infrastructure cloud compute data center news today",
+    # --- Expanded cross-domain beats ---
+    "major physics biology chemistry scientific discovery breakthrough today",
+    "FDA drug approval clinical trial vaccine biotech health breakthrough today",
+    "NASA ESA SpaceX telescope asteroid astronaut space news today",
+    "earthquake pandemic flood disaster global crisis tech impact today",
+    "superconductor graphene battery materials science discovery today",
 ]
 
 

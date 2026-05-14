@@ -235,6 +235,122 @@ topics:
       - mineral
     trend_status: unchanged
 
+  # --- Cross-Domain / Broad Interest ---
+
+  general_interesting:
+    label: "General Interesting (Hacker News High-Score Picks)"
+    priority: 3
+    keywords: []  # assigned programmatically: HN stories ≥300 points with no core-tech topic match
+    trend_status: unchanged
+
+  science_breakthrough:
+    label: "Science Breakthroughs (Physics / Chemistry / Biology)"
+    priority: 2
+    keywords:
+      - particle physics
+      - quantum mechanics
+      - quantum physics
+      - chemistry breakthrough
+      - molecule
+      - biology discovery
+      - genetics
+      - CRISPR
+      - protein folding
+      - evolution
+      - Nobel Prize
+      - scientific discovery
+      - nature study
+      - science paper
+    trend_status: unchanged
+
+  health_biotech:
+    label: "Health / Medicine / Biotech"
+    priority: 2
+    keywords:
+      - FDA approval
+      - clinical trial
+      - drug approval
+      - vaccine
+      - cancer treatment
+      - genomics
+      - longevity
+      - pandemic
+      - outbreak
+      - biotech
+      - pharmaceutical
+      - mRNA
+      - gene therapy
+      - CRISPR therapy
+      - antibiotic resistance
+    trend_status: unchanged
+
+  global_events:
+    label: "Global Events with Tech Implications"
+    priority: 2
+    keywords:
+      - earthquake
+      - hurricane
+      - typhoon
+      - flood
+      - volcanic eruption
+      - natural disaster
+      - pandemic
+      - epidemic
+      - outbreak
+      - global crisis
+      - conflict
+      - UN resolution
+      - G7 summit
+      - G20 summit
+    trend_status: unchanged
+
+  astronomy_space:
+    label: "Astronomy / Cosmology / Space / Astronautics"
+    priority: 2
+    keywords:
+      - telescope
+      - galaxy
+      - black hole
+      - dark matter
+      - dark energy
+      - exoplanet
+      - asteroid
+      - NASA
+      - ESA
+      - rocket launch
+      - satellite orbit
+      - ISS
+      - James Webb
+      - JWST
+      - cosmology
+      - supernova
+      - neutron star
+      - gravitational wave
+      - astronaut
+      - lunar mission
+      - Mars mission
+      - space exploration
+      - SpaceX Starship
+    trend_status: newly_emerging
+
+  materials_science:
+    label: "Materials Science / Advanced Materials"
+    priority: 2
+    keywords:
+      - superconductor
+      - graphene
+      - solid-state battery
+      - energy storage material
+      - nanomaterial
+      - metamaterial
+      - 2D material
+      - perovskite
+      - room-temperature superconductor
+      - topological
+      - quantum material
+      - advanced alloy
+    trend_status: unchanged
+
 trend_status_labels:
   - accelerating
   - cooling
