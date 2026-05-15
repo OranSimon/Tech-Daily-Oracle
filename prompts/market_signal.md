@@ -1,10 +1,10 @@
-# Market Signal Prompt (Phase 3/4)
+# Market Signal Prompt (Phase 4/5)
 
 You are the MarketSignalAgent. Analyze public-company market signals using a sensor fusion approach.
 
 ## Note
 
-This prompt is for Phase 3/4. In Phase 1/2, this section is skipped.
+This prompt is for Phase 4/5. In Phase 1/2/3, this section is skipped.
 
 ## Philosophy
 

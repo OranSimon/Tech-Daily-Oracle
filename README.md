@@ -1,21 +1,23 @@
 # Tech Daily Oracle
 
-A personal technology intelligence system that generates a structured daily brief covering AI models, robotics, chips, startups, Big Tech, China tech, GitHub trending, research papers, cross-domain science breakthroughs, and macro/geopolitical impacts. Output is in Chinese with English proper nouns preserved.
+A personal technology intelligence system that generates a structured daily brief covering AI models, robotics, chips, startups, Big Tech, China tech, GitHub trending, research papers, cross-domain science breakthroughs, market signals, and macro/geopolitical impacts. Output is in Chinese with English proper nouns preserved.
 
 ## What It Does
 
-Every morning the system runs a 13-step pipeline:
+Every morning the system runs a 15-step pipeline:
 
 1. Loads historical context (7 daily + 4 weekly + 3 monthly reports, 30-day topic trends, 90-day company mentions)
 2. Collects from 27+ RSS feeds, Hacker News, Hugging Face, arXiv, GitHub Trending, and 15 Claude-powered web search queries
-3. Collects trending snapshots from OSSInsight (GitHub velocity data) and HuggingFace (daily papers + models)
-4. Normalizes and deduplicates events (title-hash deduplication, topic tagging, cross-domain importance boost)
-5. Analyzes topics, companies, papers, GitHub projects, social signals, and macro impact via Claude
-6. Analyzes trending items — acceleration tracking, cross-list hit detection (GitHub ↔ HF models), LLM batch analysis for new entries
-7. Updates open predictions with new evidence
-8. Generates new falsifiable predictions with resolution criteria
-9. Produces a structured ~20-minute read daily brief (18 sections, Chinese main text)
-10. Saves report locally and optionally publishes to Notion
+3. Collects live market data via yfinance/FRED for watchlist tickers (Phase 5 — optional, off by default)
+4. Collects trending snapshots from OSSInsight (GitHub velocity data) and HuggingFace (daily papers + models)
+5. Normalizes and deduplicates events (title-hash deduplication, topic tagging, cross-domain importance boost)
+6. Analyzes topics, companies, papers, GitHub projects, social signals, and macro impact via Claude
+7. Analyzes trending items — acceleration tracking, cross-list hit detection (GitHub ↔ HF models), LLM batch analysis for new entries
+8. Runs MarketSignalAgent for triggered watchlist tickers (Phase 4 — prompt-only financial signal layer)
+9. Updates open predictions with new evidence
+10. Generates new falsifiable predictions with resolution criteria
+11. Produces a structured ~20-minute read daily brief (18 sections, Chinese main text)
+12. Saves report locally and optionally publishes to Notion
 
 Weekly reviews synthesize topic trends and score predictions (Brier score). Monthly reviews update long-term technology theses. Both have data guards — weekly requires ≥3 daily reports in the current week; monthly requires ≥2 weekly reviews or ≥10 daily reports in the target month.
 
@@ -35,7 +37,7 @@ Weekly reviews synthesize topic trends and score predictions (Brier score). Mont
 | 10 | Social Media / Community Signal | If strong social heat detected |
 | 11 | Macro & Geopolitical Impact on Tech | If qualifying macro event present |
 | 12 | Cross-Domain Signals | If science/health/space/global event meets tech-implication gate (≤5 items) |
-| 13 | Market Signal / Stock Watch | Phase 4+ only; skipped until enabled |
+| 13 | Market Signal / Stock Watch | If `market_signal.enabled: true` and a watchlist ticker triggered |
 | 14 | Open Prediction Updates | If open predictions exist |
 | 15 | New Predictions | Always (3–5 per normal signal day) |
 | 16 | Watchlist Changes | If additions recommended |
@@ -49,8 +51,8 @@ Weekly reviews synthesize topic trends and score predictions (Brier score). Mont
 | 1 | ✅ Done | Core pipeline, all analyzers, report generation, prediction engine, storage |
 | 2 | ✅ Done | Historical memory (weekly/monthly reviews, trend history), Notion publisher |
 | 3 | ✅ Done | OSSInsight + HuggingFace trending engine; cross-domain topics (science, space, health); multi-provider AI fallback with auto-continuation; HN `general_interesting` topic; 15 web search queries |
-| 4 | ❌ Not started | MarketSignalAgent (prompt-only financial signal layer, no live data) |
-| 5 | ❌ Not started | MarketSignalAgent with live market data APIs (yfinance / Alpha Vantage / FRED) |
+| 4 | ✅ Done | MarketSignalAgent — prompt-only financial signal layer; per-ticker Claude calls gated by company event importance; pre-formatted `report_snippet` injected into Section 13 |
+| 5 | ✅ Done | MarketSignalAgent with live market data (yfinance price/options, FRED macro); gated by `market_signal.live_data: true`; all failures non-fatal |
 | 6 | ⚠️ Partial | GitHub Actions workflows done; OSSInsight retry + github.com/trending HTML fallback done; test suite and X/Twitter API not yet |
 
 ## Repository Structure
@@ -71,8 +73,8 @@ prompts/                        # Claude prompt templates
   market_signal.md              # MarketSignalAgent output format (Phase 4+)
   prediction_update.md          # Open prediction update engine
   new_prediction.md             # New prediction generator
-  weekly_review.md              # Weekly synthesis
-  monthly_review.md             # Monthly strategic review
+  weekly_review.md              # Weekly synthesis (14 sections)
+  monthly_review.md             # Monthly strategic review (11 sections)
   source_quality.md             # Source reliability scoring
 
 sources/                        # Watchlists and source registries
@@ -85,13 +87,15 @@ sources/                        # Watchlists and source registries
   github_trending_config.yml    # GitHub filtering rules
   influencer_watchlist.yml      # Authority accounts to track
   macro_watchlist.yml           # Macro/geopolitical triggers
+  market_watchlist.yml          # Tickers tracked by MarketSignalAgent (Phase 4+)
 
-scripts/                        # Python orchestration (20 modules)
-  run_daily.py                  # Main entry point (13-step orchestrator)
+scripts/                        # Python orchestration (22 modules)
+  run_daily.py                  # Main entry point (15-step orchestrator)
   run_weekly_review.py          # Weekly review runner
   run_monthly_review.py         # Monthly review runner
   collect_sources.py            # Async multi-source collector (RSS/HN/HF/arXiv/GitHub)
   collect_trending.py           # OSSInsight + HuggingFace trending data collector
+  collect_market_data.py        # yfinance price/options + FRED macro collector (Phase 5)
   normalize_sources.py          # Normalization, deduplication, topic/company tagging
   analyze_topics.py             # Topic sector analysis
   analyze_companies.py          # Company event analysis
@@ -100,6 +104,7 @@ scripts/                        # Python orchestration (20 modules)
   analyze_social_signals.py     # Social signal analysis
   analyze_macro_impact.py       # Macro/geopolitical analysis
   analyze_trending.py           # Trending analysis: acceleration, cross-list, LLM batch
+  analyze_market_signals.py     # MarketSignalAgent: per-ticker financial signal (Phase 4+)
   update_predictions.py         # Prediction update engine
   score_predictions.py          # Brier score computation
   generate_report.py            # Report generation with history context
@@ -122,6 +127,7 @@ data/
   paper_mentions.jsonl          # Paper signal history
   project_mentions.jsonl        # GitHub project history
   trending_snapshots.jsonl      # OSSInsight + HuggingFace trending history (acceleration tracking)
+  market_signals.jsonl          # MarketSignalAgent outputs by ticker and date (Phase 4+)
   user_preferences.yml          # Personal configuration
 
 .github/workflows/
@@ -165,6 +171,11 @@ export NOTION_API_KEY=secret_...
 export NOTION_DATABASE_ID=...        # 32-char ID from your database URL
 ```
 
+**Optional — Market signals (Phase 5 live data):**
+```bash
+export FRED_API_KEY=...              # Free key at fred.stlouisfed.org — CPI, rates, unemployment
+```
+
 **Optional — SEC filings:**
 ```bash
 export SEC_USER_EMAIL=your@email.com
@@ -181,6 +192,25 @@ notion:
 
 output:
   push_github: true      # flip to true in production (GitHub Actions)
+```
+
+**To enable MarketSignalAgent (Phase 4 — prompt-only signals, no live data needed):**
+```yaml
+market_signal:
+  enabled: true
+```
+
+**To add live yfinance/FRED price data (Phase 5):**
+```bash
+# 1. Uncomment in requirements.txt:
+#   yfinance>=0.2.40
+#   fredapi>=3.1.0
+pip install yfinance fredapi
+
+# 2. Set in config.yml:
+market_signal:
+  enabled: true
+  live_data: true
 ```
 
 ### 4. Run manually
@@ -231,6 +261,8 @@ Output: `reports/daily/YYYY-MM-DD.md`
 | GitHub Search API | Recent repos by star velocity (daily + weekly windows) |
 | OSSInsight | GitHub velocity trending (daily / weekly / monthly), with HTML scrape fallback |
 | Claude web search | 15 targeted queries per run (10 CS/AI beats + 5 cross-domain: science, health, space, disasters, materials) |
+| yfinance | OHLCV price history, ATM options IV/put-call ratio/skew for watchlist tickers (Phase 5) |
+| FRED | Fed funds rate, CPI YoY, unemployment rate (Phase 5) |
 
 ### Topic Taxonomy (20 topics)
 
@@ -244,16 +276,36 @@ Cross-domain importance boost: events tagged with both a core tech topic **and**
 
 ---
 
+## MarketSignalAgent (Phase 4/5)
+
+The MarketSignalAgent generates qualitative per-ticker signals using a "sensor fusion" philosophy — it combines public events, market price behavior, options signals, and macro context, rather than relying on price charts alone.
+
+**Phase 4 (prompt-only, default):**
+- Triggers when a watchlist ticker's company appears in today's `company_analyses` with medium+ significance
+- One Claude call per triggered ticker (up to `max_tickers_per_run: 5`)
+- Output: conclusion, base/bull/bear cases, observation points, signals table — pre-formatted as `report_snippet` for Section 13
+
+**Phase 5 (live data, opt-in):**
+- Adds yfinance OHLCV history (30d), ATM options IV/put-call/skew, 52w stats
+- Adds FRED macro series (fed funds, CPI, unemployment)
+- Gate: `market_signal.live_data: true` + `pip install yfinance fredapi`
+
+**Watchlist:** `sources/market_watchlist.yml` — 10 default tickers (NVDA, TSM, AMD, ASML, MSFT, GOOGL, META, AAPL, AMZN, PLTR). Edit to add/remove tickers or change horizons.
+
+**Signal history:** Each triggered signal is logged (without the verbose `report_snippet`) to `data/market_signals.jsonl` for accuracy review in weekly/monthly reports.
+
+---
+
 ## AI Provider Fallback
 
 The system uses a provider chain: **Claude → GPT → Gemini** by default. On any API error, rate-limit, or missing key the next provider is tried transparently:
 
 ```
 [AI] claude (claude-sonnet-4-6) failed: 529 overloaded
-[AI] Using fallback provider: gpt (gpt-5.5)
+[AI] Using fallback provider: gpt (gpt-4o)
 ```
 
-**Auto-continuation on truncation:** If any report response hits `max_tokens`, Claude automatically resumes via assistant-message prefill (up to 4 continuations), ensuring reports are never cut mid-sentence. This applies to all markdown reports (daily, weekly, monthly). JSON calls do not auto-continue — they use higher `max_tokens` budgets instead.
+**Auto-continuation on truncation:** If any report response hits `max_tokens`, Claude automatically resumes via assistant-message prefill (up to 4 continuations), ensuring reports are never cut mid-sentence. This applies to all markdown reports (daily, weekly, monthly). JSON calls (topic analysis, market signals) do not auto-continue — they use a 4096-token budget which is sufficient for structured outputs.
 
 **Model role mapping:** Roles (fast / default / deep) are preserved across providers — a fast Claude call becomes a fast GPT call, not a full-cost one. Models are configured in `config.yml` under `ai_providers`.
 
@@ -316,6 +368,7 @@ Add these **Repository Secrets** (Settings → Secrets and variables → Actions
 | `HF_TOKEN` | Recommended | Hugging Face access |
 | `NOTION_API_KEY` | Optional | If publishing to Notion |
 | `NOTION_DATABASE_ID` | Optional | With above |
+| `FRED_API_KEY` | Optional | Phase 5 macro data (free at fred.stlouisfed.org) |
 
 `GITHUB_TOKEN` is injected automatically by Actions — no manual secret needed.
 
@@ -356,3 +409,4 @@ The publisher converts the full Markdown report to Notion blocks and handles the
 - **Contradiction analysis.** Signal conflicts are information, not noise.
 - **Prompt caching on all system prompts.** Reduces cost on daily repeated invocations.
 - **Idempotency.** Running the same date twice returns the cached report. Use `--force` to regenerate.
+- **Graceful degradation.** Every external data source (yfinance, FRED, OSSInsight, HuggingFace) fails non-fatally — the pipeline continues and the report notes the missing coverage.

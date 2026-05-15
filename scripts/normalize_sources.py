@@ -64,11 +64,12 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
                            "topological material", "quantum material", "advanced alloy"],
 }
 
-# Core tech topics used in cross-domain logic
+# Core tech topics used in cross-domain logic.
+# Must be a subset of TOPIC_KEYWORDS keys — only topics that can actually be
+# assigned by keyword matching are meaningful here.
 _CORE_TECH_TOPICS = frozenset({
     "ai_models", "ai_agents", "embodied_ai_robotics", "ai_infrastructure",
-    "semiconductors", "startups_unicorns", "papers_research", "developer_tools",
-    "autonomous_systems",
+    "semiconductors", "startups_unicorns", "papers_research",
 })
 # Science/global topics that, when co-occurring with a tech topic, earn a cross-domain boost
 _CROSS_DOMAIN_TOPICS = frozenset({

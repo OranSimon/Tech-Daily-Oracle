@@ -110,8 +110,11 @@ def _build_report_payload(state: TechDailyState) -> dict[str, Any]:
             "topic_trend_30d": state.recent_topic_trends[-90:],
             "company_mentions_90d": state.recent_company_mentions[-120:],
         },
+        # Section 13 only needs ticker, company, and the pre-formatted snippet.
+        # Sending the full dataclass (20 fields) wastes payload tokens redundantly.
         "market_signal_analyses": [
-            _safe_dict(v) for v in state.market_signal_analyses.values()
+            {"ticker": v.ticker, "company": v.company, "report_snippet": v.report_snippet}
+            for v in state.market_signal_analyses.values()
         ],
         "source_warnings": state.source_warnings,
         "confidence_flags": state.confidence_flags,

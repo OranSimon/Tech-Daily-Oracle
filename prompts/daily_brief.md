@@ -246,6 +246,7 @@ You will receive a structured JSON payload containing:
 - `github_project_analyses`: pre-analyzed GitHub projects
 - `social_signal_analyses`: social media analyses
 - `macro_impact_analyses`: macro event analyses
+- `market_signal_analyses`: list of `{ticker, company, report_snippet}` objects for Section 13 (empty when Phase 4 is disabled)
 - `open_predictions`: all open predictions
 - `previous_reports_summary`: summaries of last 7 daily reports
 - `user_preferences`: user preference config
