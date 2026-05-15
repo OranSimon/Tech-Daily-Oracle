@@ -39,6 +39,7 @@ from storage import (
     load_recent_weekly_reviews, load_recent_monthly_reviews,
     load_topic_trends_recent, load_company_mentions_recent,
     save_trending_snapshot, load_trending_history,
+    save_market_signals, load_last_signal_per_ticker,
 )
 from publish_notion import publish_to_notion
 
@@ -115,6 +116,26 @@ def run_daily(run_date: str | None = None, force: bool = False) -> str:
         state.source_warnings.append(f"Source collection error: {e}")
         state.raw_events = []
     print(f"  Collection took {time.time()-t0:.1f}s")
+
+    # -----------------------------------------------------------------------
+    # Step 2.3: Market Data Collection (Phase 5 — live data mode only)
+    # Runs before analysis steps so price data is ready for Step 9.5.
+    # -----------------------------------------------------------------------
+    market_data: dict | None = None
+    if (cfg.get("market_signal", {}).get("enabled", False)
+            and cfg.get("market_signal", {}).get("live_data", False)):
+        _step("Collecting market data (yfinance / FRED)")
+        try:
+            watchlist_file = cfg.get("market_signal", {}).get(
+                "watchlist_file", "sources/market_watchlist.yml"
+            )
+            with open(os.path.join(ROOT, watchlist_file)) as _wl_f:
+                _wl = yaml.safe_load(_wl_f)
+            _tickers = [t["ticker"] for t in _wl.get("tickers", [])]
+            from collect_market_data import collect_market_data
+            market_data = collect_market_data(_tickers, cfg)
+        except Exception as e:
+            print(f"  [MarketData] Collection failed (non-fatal): {e}")
 
     # -----------------------------------------------------------------------
     # Step 2.5: Trending Snapshot Collection (parallel with source collection)
@@ -209,6 +230,25 @@ def run_daily(run_date: str | None = None, force: bool = False) -> str:
         print(f"  [ERROR] Macro analysis failed: {e}")
 
     # -----------------------------------------------------------------------
+    # Step 9.5: Market Signal Analysis (Phase 4+)
+    # Runs after company + macro analyses (its inputs) and before report generation.
+    # -----------------------------------------------------------------------
+    if cfg.get("market_signal", {}).get("enabled", False):
+        _step("Analyzing market signals (MarketSignalAgent)")
+        try:
+            from analyze_market_signals import analyze_market_signals
+            prior_signals = load_last_signal_per_ticker()
+            state.market_signal_analyses = analyze_market_signals(
+                state=state,
+                market_data=market_data,
+                prior_signals=prior_signals,
+                config=cfg,
+            )
+        except Exception as e:
+            print(f"  [MarketSignal] Analysis failed (non-fatal): {e}")
+            traceback.print_exc()
+
+    # -----------------------------------------------------------------------
     # Step 10: Prediction Updates
     # -----------------------------------------------------------------------
     _step("Updating predictions")
@@ -249,6 +289,11 @@ def run_daily(run_date: str | None = None, force: bool = False) -> str:
             save_trending_snapshot(trending_snapshot)
         except Exception as e:
             print(f"  [Storage] Trending snapshot save failed (non-fatal): {e}")
+    if state.market_signal_analyses:
+        try:
+            save_market_signals(run_date, state.market_signal_analyses)
+        except Exception as e:
+            print(f"  [Storage] Market signals save failed (non-fatal): {e}")
 
     if cfg.get("notion", {}).get("enabled", False):
         try:
@@ -271,6 +316,7 @@ def run_daily(run_date: str | None = None, force: bool = False) -> str:
     print(f"  GitHub repos:     {len(state.github_project_analyses)}")
     print(f"  Pred updates:     {len(state.prediction_updates)}")
     print(f"  New predictions:  {len(state.new_predictions)}")
+    print(f"  Market signals:   {len(state.market_signal_analyses)}")
     print(f"  Report:           {report_path}")
     print(f"{'#'*60}\n")
 

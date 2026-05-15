@@ -7,3 +7,7 @@ pyyaml>=6.0.2
 # Install whichever you plan to use as backup:
 openai>=1.30.0                 # GPT fallback (requires OPENAI_API_KEY)
 google-generativeai>=0.8.0     # Gemini fallback (requires GEMINI_API_KEY or GOOGLE_API_KEY)
+
+# Market Signal — Phase 4/5 (install when enabling config.market_signal.live_data = true)
+# yfinance>=0.2.40             # Free Yahoo Finance: price history, options chains (no API key)
+# fredapi>=3.1.0               # FRED macro series: rates, CPI, unemployment (free key at fred.stlouisfed.org)

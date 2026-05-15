@@ -92,7 +92,22 @@ Analysis: which directions are gaining vs losing momentum? Why?]
 - Brier Score: [value]
 - Calibration trend: [improving / stable / degrading]
 - Main error types this month
-- Updated calibration notes for future predictions]
+- Updated calibration notes for future predictions
+
+### Market Signal Accuracy (Phase 5)
+
+[Render only if `market_signal_performance` in the payload is non-empty.
+
+If empty: output one line → "本月 MarketSignalAgent 未启用或无历史信号数据。"
+
+If non-empty, summarise per ticker across the month:
+- How many times each ticker was triggered
+- Most common risk_level and confidence distributions
+- Whether the stated conclusions (conclusion_zh) were consistent across the month
+- Signals to monitor: which thresholds were repeatedly flagged
+
+Note: Quantitative accuracy (direction correct/incorrect vs realised price moves) requires
+≥4 weeks of signal history. Once available, compare `buy_observation_point` / `sell_reduce_observation_point` from stored signals against subsequent yfinance price data.]
 
 ## 10. Strategic Theses Updated
 

@@ -8,7 +8,7 @@ import os
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from state import TechDailyState, Prediction, PredictionUpdate, Report, TrendingSnapshot
+from state import TechDailyState, Prediction, PredictionUpdate, Report, TrendingSnapshot, MarketSignalAnalysis
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, "data")
@@ -362,3 +362,55 @@ def save_trending_snapshot(snapshot: TrendingSnapshot) -> None:
 def load_trending_history(days: int = 30) -> list[dict]:
     """Load trending snapshot rows from the past N days."""
     return _load_jsonl_since(TRENDING_LOG, days)
+
+
+# ---------------------------------------------------------------------------
+# Market signals log (Phase 4+)
+# ---------------------------------------------------------------------------
+
+MARKET_SIGNALS_LOG = os.path.join(DATA_DIR, "market_signals.jsonl")
+
+
+def save_market_signals(run_date: str, analyses: dict[str, "MarketSignalAnalysis"]) -> None:
+    """Append one row per ticker to market_signals.jsonl."""
+    _ensure_dirs()
+    if not analyses:
+        return
+    with open(MARKET_SIGNALS_LOG, "a", encoding="utf-8") as f:
+        for ticker, analysis in analyses.items():
+            row = _safe_dict(analysis)
+            row["run_date"] = run_date
+            # Omit the verbose report_snippet from the log to keep file lean;
+            # it can always be regenerated from the other fields.
+            row.pop("report_snippet", None)
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    print(f"  [Storage] Saved {len(analyses)} market signals to log")
+
+
+def load_market_signals_history(days: int = 90) -> list[dict]:
+    """Load market signal rows from the past N days (for accuracy tracking)."""
+    return _load_jsonl_since(MARKET_SIGNALS_LOG, days)
+
+
+def load_last_signal_per_ticker() -> dict[str, dict]:
+    """Return the most recent signal dict keyed by ticker.
+
+    Used to pass `previous_signal` context to the MarketSignalAgent so it can
+    compare today's thesis against its own prior output.
+    """
+    if not os.path.exists(MARKET_SIGNALS_LOG):
+        return {}
+    latest: dict[str, dict] = {}
+    with open(MARKET_SIGNALS_LOG, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                d = json.loads(line)
+                ticker = d.get("ticker", "")
+                if ticker:
+                    latest[ticker] = d  # last line wins (file is append-only, date-ordered)
+            except Exception:
+                pass
+    return latest

@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from claude_client import call_claude, DEFAULT_MODEL
 from storage import (
     save_monthly_review, load_recent_reports, load_open_predictions,
-    load_trending_history,
+    load_trending_history, load_market_signals_history,
 )
 from score_predictions import compute_scorecard
 from collect_trending import collect_trending_snapshot
@@ -225,6 +225,16 @@ def run_monthly_review(month_str: str | None = None) -> str:
     prediction_perf = _load_prediction_performance(month_str)
     open_predictions = load_open_predictions()
 
+    # Market signal history for this month (Phase 4+; empty list when disabled)
+    try:
+        all_market_signals = load_market_signals_history(days=95)  # full month + buffer
+        market_signals_this_month = [
+            s for s in all_market_signals
+            if s.get("run_date", "")[:7] == month_str
+        ]
+    except Exception:
+        market_signals_this_month = []
+
     user_msg = json.dumps({
         "month": month_str,
         "weekly_reviews": weekly_reviews,
@@ -238,6 +248,7 @@ def run_monthly_review(month_str: str | None = None) -> str:
             for p in open_predictions
         ],
         "trending_monthly_summary": trending_section or None,
+        "market_signal_performance": market_signals_this_month or None,
     }, ensure_ascii=False)
 
     max_tokens = cfg.get("model", {}).get("max_tokens_monthly", 24000)

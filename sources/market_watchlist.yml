@@ -1,0 +1,80 @@
+# Market Signal Watchlist
+# Tickers tracked by the MarketSignalAgent (Phase 4+)
+#
+# settings.only_on_event_day — if true, a ticker is only analyzed when a
+#   matching company event appears in today's company_analyses with
+#   importance >= min_importance_to_trigger. Set false to generate a signal
+#   for every ticker every day (much noisier; not recommended for daily use).
+#
+# settings.max_tickers_per_run — caps the number of tickers analyzed per
+#   daily run. When more tickers qualify, the ones with the highest company
+#   analysis importance are prioritized.
+
+settings:
+  only_on_event_day: true
+  min_importance_to_trigger: 0.55
+  max_tickers_per_run: 5
+
+tickers:
+  # --- AI Infrastructure / Semiconductors ---
+  - ticker: NVDA
+    company: Nvidia
+    sector: semiconductors
+    horizon: "2–8 weeks"
+    why_tracked: "GPU supply is the binding rate-limiter for all AI capex; H100/H200/B200 demand proxy"
+
+  - ticker: TSM
+    company: TSMC
+    sector: semiconductors
+    horizon: "4–12 weeks"
+    why_tracked: "Advanced node chokepoint; CoWoS capacity drives AI GPU availability; export control proxy"
+
+  - ticker: AMD
+    company: AMD
+    sector: semiconductors
+    horizon: "2–8 weeks"
+    why_tracked: "MI300X competitive position vs H100/H200; data center CPU share"
+
+  - ticker: ASML
+    company: ASML
+    sector: semiconductors
+    horizon: "4–12 weeks"
+    why_tracked: "EUV monopoly; China export ban sensitivity; forward indicator for node advancement"
+
+  # --- Big Tech / AI Labs ---
+  - ticker: MSFT
+    company: Microsoft
+    sector: big_tech
+    horizon: "2–8 weeks"
+    why_tracked: "OpenAI partnership revenue, Azure AI growth, Copilot enterprise adoption"
+
+  - ticker: GOOGL
+    company: Google
+    sector: big_tech
+    horizon: "2–8 weeks"
+    why_tracked: "Gemini adoption vs GPT, TPU capex, search disruption risk, Waymo optionality"
+
+  - ticker: META
+    company: Meta
+    sector: big_tech
+    horizon: "2–8 weeks"
+    why_tracked: "Llama ecosystem, Ray-Ban glasses traction, capex discipline signal"
+
+  - ticker: AAPL
+    company: Apple
+    sector: hardware_devices
+    horizon: "4–12 weeks"
+    why_tracked: "AI device upgrade cycle, China sales concentration risk, Vision Pro traction"
+
+  - ticker: AMZN
+    company: Amazon
+    sector: big_tech
+    horizon: "2–8 weeks"
+    why_tracked: "AWS AI revenue acceleration, Trainium/Inferentia custom silicon differentiation"
+
+  # --- AI Infra / Infrastructure Pure-Plays ---
+  - ticker: PLTR
+    company: Palantir
+    sector: ai_infrastructure
+    horizon: "2–8 weeks"
+    why_tracked: "AIP enterprise adoption velocity, US government AI contracts, commercial ARR growth"

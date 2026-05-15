@@ -173,10 +173,15 @@ If no qualifying cross-domain events: "今日无需关注的跨域信号。"]
 
 ## 13. Market Signal / Stock Watch
 
-[Phase 3/4 feature — skip unless MarketSignalAgent is enabled.
+[Render from the `market_signal_analyses` field in the input payload.
 
-If enabled, brief output per tracked ticker:
-- **TICKER:** [conclusion] — [entry quality] — [buy/sell observation point]]
+**If `market_signal_analyses` is empty or absent:**
+Output exactly one line: "MarketSignalAgent 未启用或今日无触发信号。"
+
+**If non-empty:**
+For each entry in `market_signal_analyses`, output its `report_snippet` field **verbatim** — do not paraphrase, summarise, or reorder. Separate tickers with a blank line.
+
+The snippet is already formatted (ticker heading, 结论/直白原因/cases/observation points/signals table). Your only job here is to concatenate them in order.]
 
 ## 14. Open Prediction Updates
 

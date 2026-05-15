@@ -68,7 +68,7 @@ For each sensor, check:
 }
 ```
 
-## Report Snippet Format (for daily report section 12)
+## Report Snippet Format (for daily report section 13)
 
 ```markdown
 ### {ticker}

@@ -114,6 +114,25 @@ predictions:
   daily_high_signal: 6
   open_prediction_warning_threshold: 30
 
+market_signal:
+  enabled: true             # Phase 4: flip to true to activate MarketSignalAgent
+  watchlist_file: "sources/market_watchlist.yml"
+  only_on_event_day: true    # only run for tickers with a company event today
+  max_tickers_per_run: 5     # cap to control API cost and report length
+  min_importance_to_trigger: 0.55   # company analysis must be medium+ significance
+
+  # Phase 5 — live market data via yfinance / FRED
+  # Requires: pip install yfinance fredapi
+  live_data: true          # flip to true to enable yfinance price + options data
+  price_history_days: 30
+  options_nearest_expiry_only: true
+  macro_tickers:
+    vix:            "^VIX"
+    ten_year_yield: "^TNX"
+    dxy:            "DX-Y.NYB"
+    spx:            "^GSPC"
+  fred_api_key: ""           # or set FRED_API_KEY env var (free key at fred.stlouisfed.org)
+
 github_project_filter:
   top_n_per_report: 3
   min_stars_total: 50

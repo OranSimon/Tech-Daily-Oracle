@@ -110,6 +110,9 @@ def _build_report_payload(state: TechDailyState) -> dict[str, Any]:
             "topic_trend_30d": state.recent_topic_trends[-90:],
             "company_mentions_90d": state.recent_company_mentions[-120:],
         },
+        "market_signal_analyses": [
+            _safe_dict(v) for v in state.market_signal_analyses.values()
+        ],
         "source_warnings": state.source_warnings,
         "confidence_flags": state.confidence_flags,
         "user_preferences": _load_preferences(),

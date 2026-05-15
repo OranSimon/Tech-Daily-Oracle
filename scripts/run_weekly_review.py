@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from claude_client import call_claude, DEFAULT_MODEL
 from storage import (
     save_weekly_review, load_recent_reports, load_open_predictions,
-    load_trending_history,
+    load_trending_history, load_market_signals_history,
 )
 from score_predictions import compute_scorecard
 from collect_trending import collect_trending_snapshot
@@ -186,6 +186,16 @@ def run_weekly_review(week_str: str | None = None) -> str:
             except Exception:
                 pass
 
+    # Market signal history for this week (Phase 4+; empty list when disabled)
+    try:
+        all_market_signals = load_market_signals_history(days=14)
+        market_signals_this_week = [
+            s for s in all_market_signals
+            if _iso_week(date.fromisoformat(s.get("run_date", "1970-01-01"))) == week_str
+        ]
+    except Exception:
+        market_signals_this_week = []
+
     user_msg = json.dumps({
         "week": week_str,
         "daily_reports": daily_reports,
@@ -199,6 +209,7 @@ def run_weekly_review(week_str: str | None = None) -> str:
         "brier_scores": scorecard,
         "topic_trend_history": topic_trends,
         "trending_weekly_summary": trending_section or None,
+        "market_signal_performance": market_signals_this_week or None,
     }, ensure_ascii=False)
 
     max_tokens = cfg.get("model", {}).get("max_tokens_weekly", 16000)

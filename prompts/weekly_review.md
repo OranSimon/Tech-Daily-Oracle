@@ -86,7 +86,21 @@ Generate a full weekly review in Markdown. Chinese main text, English proper nou
 - Calibration: [over-confident / under-confident / well-calibrated]
 - Score vs prior weeks: [trend]]
 
-## 12. 错误类型分析
+## 12. Market Signal Summary
+
+[Render only if `market_signal_performance` in the payload is non-empty.
+
+If empty: output one line → "本周 MarketSignalAgent 未启用或无触发信号。"
+
+If non-empty, for each signal entry:
+- **{ticker} ({company})** — 结论：{conclusion_zh} · 风险：{risk_level} · 信心：{confidence}
+- 触发时间：{run_date}
+- Key signals monitored: list the `signals_to_monitor` entries briefly
+
+Note: Signal accuracy comparison (were buy/sell observation points correct?) is logged in
+`data/market_signals.jsonl` and will appear here once ≥4 weeks of history has accumulated.]
+
+## 13. 错误类型分析
 
 [Common error patterns observed this week:
 - Over-weighting hype signals
@@ -97,7 +111,7 @@ Generate a full weekly review in Markdown. Chinese main text, English proper nou
 
 Specific examples with reasoning.]
 
-## 13. 下周重点 Watchlist
+## 14. 下周重点 Watchlist
 
 [Concrete list of signals, events, and entities to watch next week:
 

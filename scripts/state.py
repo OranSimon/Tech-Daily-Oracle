@@ -239,6 +239,35 @@ class TrendingAnalysis:
 
 
 # ---------------------------------------------------------------------------
+# Market signal types (Phase 4+)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MarketSignalAnalysis:
+    """Output from one MarketSignalAgent call for a single ticker."""
+    ticker: str
+    company: str
+    date: str
+    time_horizon: str
+    event_context: list[str]
+    conclusion: str
+    conclusion_zh: str
+    reasoning_zh: str
+    base_case: str
+    bull_case: str
+    bear_case: str
+    buy_observation_point: str
+    sell_reduce_observation_point: str
+    invalidation_condition: str
+    risk_level: str        # low | medium | medium-high | high
+    confidence: str        # low | medium | medium-high | high
+    signals_to_monitor: list[dict[str, str]]
+    source_events: list[str]
+    has_price_data: bool = False   # True when Phase 5 live data was injected
+    report_snippet: str = ""       # pre-formatted markdown for Section 13
+
+
+# ---------------------------------------------------------------------------
 # Prediction types
 # ---------------------------------------------------------------------------
 
@@ -331,6 +360,9 @@ class TechDailyState:
 
     # Trending analysis (daily snapshot)
     trending_analysis: Any = field(default=None)  # TrendingAnalysis | None
+
+    # Market signal analyses (Phase 4+)
+    market_signal_analyses: dict[str, "MarketSignalAnalysis"] = field(default_factory=dict)
 
     # Final output
     final_report: str = ""
