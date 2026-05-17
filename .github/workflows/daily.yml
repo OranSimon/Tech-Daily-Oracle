@@ -1,13 +1,11 @@
 name: Tech Daily Brief
 
-# Runs Monday–Thursday only.
-# Friday is handled by the Weekly Review workflow, which runs daily first.
+# Runs every day at 21:00 UTC = 05:00 CST next morning.
+# Reports on the PREVIOUS CST day's events (run_daily anchors to Asia/Shanghai).
 
 on:
   schedule:
-    # Mon–Thu at 23:00 UTC = Tue–Fri at 07:00 CST (next morning).
-    # Reports on the PREVIOUS day's events (run_daily defaults to yesterday).
-    - cron: '0 23 * * 1-4'
+    - cron: '0 21 * * *'
   workflow_dispatch:
     inputs:
       run_date:

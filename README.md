@@ -25,7 +25,7 @@ Weekly reviews synthesize topic trends and score predictions (Brier score). Mont
 
 | # | Section | Trigger |
 |---|---------|---------|
-| 1 | 今日一句话判断 | Always |
+| 1 | Daily Summary | Always |
 | 2 | Executive Summary | Always |
 | 3 | Top Developments | Always |
 | 4 | Technology Radar | Always |
