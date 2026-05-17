@@ -6,9 +6,11 @@ Sources:
                 → model trending (HF's internal ~7-day sliding window)
 
 OSSInsight API endpoint:
-  GET https://api.ossinsight.io/v1/repos/trending
-  params: period=past_24_hours|past_week|past_month  language=  page=1  pageSize=N
-  No auth required for public trending; responses include stars_increment (velocity).
+  GET https://api.ossinsight.io/v1/trends/repos/
+  params: period=past_24_hours|past_week|past_month  language=<lang or omit for all>
+  No auth required; always returns 100 rows (pageSize ignored). Fields: stars, forks,
+  pull_requests, pushes, total_score, contributor_logins (changed from old /v1/repos/trending).
+  Docs: https://ossinsight.io/docs/api/list-trending-repos
 
 HuggingFace paper rolling windows are built by aggregating multiple daily calls.
 A paper appearing across more days → stronger rolling signal.
@@ -47,13 +49,15 @@ async def _fetch_ossinsight(
     language: str = "",
     top_n: int = 20,
 ) -> list[TrendingItem]:
-    """OSSInsight with retry. Falls back to github.com/trending HTML if 'daily' period fails."""
+    """OSSInsight /v1/trends/repos/ with retry. Falls back to github.com/trending HTML on failure.
+
+    API docs: https://ossinsight.io/docs/api/list-trending-repos
+    Endpoint changed from /v1/repos/trending to /v1/trends/repos/ (old path returns 500).
+    Returns 100 rows regardless of pageSize; we slice to top_n after fetching.
+    Field mapping: stars (period increment) → velocity_score; total_score in extras.
+    """
     items: list[TrendingItem] = []
-    params: dict = {
-        "period": _OSS_PERIOD.get(period, "past_24_hours"),
-        "page": 1,
-        "pageSize": top_n,
-    }
+    params: dict = {"period": _OSS_PERIOD.get(period, "past_24_hours")}
     if language:
         params["language"] = language
 
@@ -62,7 +66,7 @@ async def _fetch_ossinsight(
     for attempt in range(3):
         try:
             resp = await client.get(
-                f"{OSSINSIGHT_BASE}/v1/repos/trending",
+                f"{OSSINSIGHT_BASE}/v1/trends/repos/",
                 params=params,
                 timeout=25,
             )
@@ -79,16 +83,17 @@ async def _fetch_ossinsight(
                     description=(row.get("description") or "")[:400],
                     period=period,
                     rank=i,
-                    velocity_score=float(row.get("stars_increment", 0)),
+                    velocity_score=float(row.get("stars") or 0),
                     language=row.get("primary_language") or "",
                     topics=[],
                     snapshot_date="",  # stamped by caller
                     extra={
-                        "forks_increment": row.get("forks_increment", 0),
-                        "prs_increment": row.get("prs_increment", 0),
-                        "issues_increment": row.get("issues_increment", 0),
+                        "forks": row.get("forks", 0),
+                        "pull_requests": row.get("pull_requests", 0),
+                        "pushes": row.get("pushes", 0),
                         "total_score": row.get("total_score", 0),
-                        "collection_names": row.get("collection_names", []),
+                        "collection_names": row.get("collection_names") or [],
+                        "contributor_logins": row.get("contributor_logins") or "",
                     },
                 ))
             if items:
@@ -103,13 +108,12 @@ async def _fetch_ossinsight(
             else:
                 print(f"  [Trending] OSSInsight {period} exhausted retries: {e}")
 
-    # Fallback: scrape github.com/trending HTML — public page, no auth, real velocity data.
-    # Only meaningful for 'daily' period; the trending page mirrors past-24h activity.
-    if period == "daily":
-        print(f"  [Trending] Falling back to github.com/trending HTML scrape")
-        fallback_items = await _fetch_github_trending_html(client, language, top_n)
-        if fallback_items:
-            return fallback_items
+    # Fallback: scrape github.com/trending HTML — supports all three periods via ?since=.
+    # This is the canonical GitHub trending page, more reliable than OSSInsight.
+    print(f"  [Trending] Falling back to github.com/trending HTML scrape (period={period})")
+    fallback_items = await _fetch_github_trending_html(client, language, top_n, period)
+    if fallback_items:
+        return fallback_items
 
     return items
 
@@ -119,12 +123,17 @@ async def _fetch_ossinsight(
 # ---------------------------------------------------------------------------
 
 _GH_TRENDING_ARTICLE_RE = re.compile(r'<article class="Box-row">(.*?)</article>', re.DOTALL)
-_GH_TRENDING_REPO_RE = re.compile(r'<h2 class="h3 lh-condensed">\s*<a href="/([^"]+?)"', re.DOTALL)
-_GH_TRENDING_DESC_RE = re.compile(r'<p class="col-9 color-fg-muted my-1 pr-4">\s*(.*?)\s*</p>', re.DOTALL)
-_GH_TRENDING_STARS_TODAY_RE = re.compile(r'([\d,]+)\s+stars?\s+today')
+# <a> in h2 has data-hydro-click and other attrs before href; use [^>]+ to skip them
+_GH_TRENDING_REPO_RE = re.compile(r'<h2 class="h3 lh-condensed">\s*<a[^>]+href="/([^"]+?)"', re.DOTALL)
+# GitHub renamed pr-4 → tmp-pr-4; use [^"]* to match any suffix after "my-1 "
+_GH_TRENDING_DESC_RE = re.compile(r'<p class="col-9 color-fg-muted my-1[^"]*">\s*(.*?)\s*</p>', re.DOTALL)
+# Matches "397 stars today" (daily), "8,618 stars this week" (weekly), "12,345 stars this month" (monthly)
+_GH_TRENDING_STARS_TODAY_RE = re.compile(r'([\d,]+)\s+stars?\s+(?:today|this\s+week|this\s+month)')
 _GH_TRENDING_LANG_RE = re.compile(r'itemprop="programmingLanguage">\s*(.+?)\s*</span>')
-_GH_TRENDING_TOTAL_STARS_RE = re.compile(r'aria-label="star"></svg>\s*([\d,]+)', re.DOTALL)
-_GH_TRENDING_FORKS_RE = re.compile(r'/forks">\s*([\d,]+)', re.DOTALL)
+# Total stars = number immediately before the /forks anchor
+_GH_TRENDING_TOTAL_STARS_RE = re.compile(r'([\d,]+)</a>\s*<a href="[^"]+/forks"')
+# Forks count comes after the fork SVG icon inside the forks anchor
+_GH_TRENDING_FORKS_RE = re.compile(r'href="[^"]+/forks"[^>]*>.*?</svg>\s*([\d,]+)', re.DOTALL)
 
 
 def _to_int(s: str) -> int:
@@ -134,17 +143,30 @@ def _to_int(s: str) -> int:
         return 0
 
 
-async def _fetch_github_trending_html(
-    client: httpx.AsyncClient, language: str = "", top_n: int = 20
-) -> list[TrendingItem]:
-    """Scrape github.com/trending — public HTML page, no auth, real stars-today velocity.
+_GH_SINCE = {
+    "daily": "daily",
+    "weekly": "weekly",
+    "monthly": "monthly",
+}
 
-    Why this exists: OSSInsight API has occasional 500 outages. The GitHub trending
-    page itself is the original source of "trending" semantics with genuine velocity
-    metrics (stars-today), so it's the most reliable fallback when OSSInsight is down.
+
+async def _fetch_github_trending_html(
+    client: httpx.AsyncClient, language: str = "", top_n: int = 20, period: str = "daily"
+) -> list[TrendingItem]:
+    """Scrape github.com/trending — public HTML page, no auth, real velocity data.
+
+    Supports all three time windows via the `since` query parameter:
+      ?since=daily   → stars gained today
+      ?since=weekly  → stars gained this week
+      ?since=monthly → stars gained this month
+
+    Why this exists: OSSInsight API has persistent 500 outages. The GitHub trending
+    page is the canonical source of trending semantics with genuine velocity metrics.
     """
     items: list[TrendingItem] = []
-    url = f"https://github.com/trending/{language}" if language else "https://github.com/trending"
+    since = _GH_SINCE.get(period, "daily")
+    base = f"https://github.com/trending/{language}" if language else "https://github.com/trending"
+    url = f"{base}?since={since}"
     try:
         resp = await client.get(
             url,
@@ -188,21 +210,21 @@ async def _fetch_github_trending_html(
                 title=owner_repo,
                 url=f"https://github.com/{owner_repo}",
                 description=description[:400],
-                period="daily",
+                period=period,
                 rank=i,
-                velocity_score=float(stars_today),  # real stars-today velocity
+                velocity_score=float(stars_today),
                 language=lang,
                 topics=[],
                 snapshot_date="",  # stamped by caller
                 extra={
                     "total_stars": total_stars,
                     "forks": forks,
-                    "fallback_source": "github.com/trending",
+                    "fallback_source": f"github.com/trending?since={since}",
                 },
             ))
-        print(f"  [Trending] github.com/trending HTML fallback: {len(items)} repos")
+        print(f"  [Trending] github.com/trending HTML ({since}): {len(items)} repos")
     except Exception as e:
-        print(f"  [Trending] github.com/trending HTML fallback failed: {e}")
+        print(f"  [Trending] github.com/trending HTML scrape failed (since={since}): {e}")
     return items
 
 
@@ -318,7 +340,7 @@ async def _fetch_hf_models(
     try:
         resp = await client.get(
             f"{HF_API_BASE}/models",
-            params={"sort": "trending", "limit": top_n, "direction": -1},
+            params={"sort": "trendingScore", "limit": top_n},
             headers=headers,
             timeout=20,
         )

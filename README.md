@@ -331,10 +331,10 @@ ai_providers:
 
 The trending pipeline runs in parallel with source collection on every daily run:
 
-**GitHub velocity data (OSSInsight):**
-- `GET /v1/repos/trending?period=past_24_hours` — real star velocity (not total stars)
-- 3× retry with exponential backoff (1s, 2s) on transient 5xx errors
-- Falls back to scraping `github.com/trending` HTML (stars-today velocity) if OSSInsight is unavailable
+**GitHub velocity data:**
+- Primary: OSSInsight `GET /v1/trends/repos/` — real star/fork/PR/push velocity with composite `total_score`; supports daily/weekly/monthly periods; no auth required
+- 3× retry with exponential backoff (1s, 2s) on transient errors
+- Fallback: `github.com/trending?since=daily|weekly|monthly` HTML scraper — canonical GitHub page, works for all three periods; velocity extracted from "X stars today/this week/this month" text
 
 **HuggingFace rolling window:**
 - Daily papers: aggregates N days of `/api/daily_papers` calls; rank = days_appeared × upvote_sum
