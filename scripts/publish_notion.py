@@ -190,8 +190,19 @@ def _create_page(api_key: str, database_id: str, title: str,
 # Public entry point
 # ---------------------------------------------------------------------------
 
-def publish_to_notion(run_date: str, content: str, cfg: dict[str, Any]) -> str | None:
-    """Publish the daily report Markdown to a Notion database page.
+def publish_to_notion(
+    run_date: str,
+    content: str,
+    cfg: dict[str, Any],
+    title: str | None = None,
+) -> str | None:
+    """Publish a Markdown report to a Notion database page.
+
+    Args:
+        run_date: ISO date string (YYYY-MM-DD) used for the Notion Date property.
+        content:  Markdown content to convert and publish.
+        cfg:      Loaded config.yml dict.
+        title:    Page title override. Defaults to "Tech Daily Brief — {run_date}".
 
     Returns the Notion page URL on success, None on failure.
     Reads credentials from environment variables:
@@ -207,7 +218,8 @@ def publish_to_notion(run_date: str, content: str, cfg: dict[str, Any]) -> str |
         print("  [Notion] Missing NOTION_API_KEY or NOTION_DATABASE_ID — skipping")
         return None
 
-    title = f"Tech Daily Brief — {run_date}"
+    if title is None:
+        title = f"Tech Daily Brief — {run_date}"
     blocks = md_to_notion_blocks(content)
     print(f"  [Notion] Creating page '{title}' ({len(blocks)} blocks)...")
     url = _create_page(api_key, database_id, title, run_date, blocks)

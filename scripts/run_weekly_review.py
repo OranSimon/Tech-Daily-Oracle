@@ -228,6 +228,23 @@ def run_weekly_review(week_str: str | None = None) -> str:
 
     path = save_weekly_review(week_str, review)
     print(f"  Weekly review saved: {path}")
+
+    if cfg.get("notion", {}).get("enabled", False):
+        try:
+            from publish_notion import publish_to_notion
+            # Use Monday of the ISO week as the representative date for Notion's Date property.
+            monday = datetime.strptime(f"{week_str}-1", "%G-W%V-%u").date()
+            notion_url = publish_to_notion(
+                monday.isoformat(),
+                review,
+                cfg,
+                title=f"Tech Weekly Review — {week_str}",
+            )
+            if notion_url:
+                print(f"  [Notion] Published: {notion_url}")
+        except Exception as e:
+            print(f"  [Notion] Publish failed (non-fatal): {e}")
+
     return review
 
 

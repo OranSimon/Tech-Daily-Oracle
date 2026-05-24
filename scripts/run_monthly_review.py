@@ -267,6 +267,22 @@ def run_monthly_review(month_str: str | None = None) -> str:
 
     path = save_monthly_review(month_str, review)
     print(f"  Monthly review saved: {path}")
+
+    if cfg.get("notion", {}).get("enabled", False):
+        try:
+            from publish_notion import publish_to_notion
+            # Use the 1st of the month as the representative date for Notion's Date property.
+            notion_url = publish_to_notion(
+                f"{month_str}-01",
+                review,
+                cfg,
+                title=f"Tech Monthly Review — {month_str}",
+            )
+            if notion_url:
+                print(f"  [Notion] Published: {notion_url}")
+        except Exception as e:
+            print(f"  [Notion] Publish failed (non-fatal): {e}")
+
     return review
 
 
