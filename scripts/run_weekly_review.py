@@ -17,26 +17,25 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from claude_client import call_claude, DEFAULT_MODEL
+from prompt_runner import PromptRunner
 from storage import (
-    save_weekly_review, load_recent_reports, load_open_predictions,
-    load_trending_history, load_market_signals_history,
+    save_weekly_review,
+    load_recent_reports,
+    load_open_predictions,
+    load_trending_history,
+    load_market_signals_history,
 )
 from score_predictions import compute_scorecard
 from collect_trending import collect_trending_snapshot
 from analyze_trending import analyze_trending
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_WEEKLY_MODEL = "claude-sonnet-4-6"
 
 
 def _load_config() -> dict:
     with open(os.path.join(ROOT, "config.yml")) as f:
         return yaml.safe_load(f)
-
-
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "weekly_review.md")) as f:
-        return f.read()
 
 
 def _iso_week(d: date) -> str:
@@ -51,10 +50,12 @@ def _load_week_reports(week_str: str) -> list[dict]:
         try:
             d = date.fromisoformat(r.report_date)
             if _iso_week(d) == week_str:
-                weekly.append({
-                    "date": r.report_date,
-                    "content": r.content[:3000],   # truncate for prompt
-                })
+                weekly.append(
+                    {
+                        "date": r.report_date,
+                        "content": r.content[:3000],  # truncate for prompt
+                    }
+                )
         except Exception:
             pass
     return weekly
@@ -111,7 +112,7 @@ def _load_resolved_predictions_week(week_str: str) -> list[dict]:
     return resolved
 
 
-def run_weekly_review(week_str: str | None = None) -> str:
+def run_weekly_review(week_str: str | None = None, prompt_runner: PromptRunner | None = None) -> str:
     cfg = _load_config()
     # Local-timezone "today" so the ISO-week calculation matches the CST workweek
     # (the cron fires at 23:00 UTC Fri = 07:00 CST Sat).
@@ -136,11 +137,10 @@ def run_weekly_review(week_str: str | None = None) -> str:
         )
         return ""
 
-    print(f"\n{'#'*60}")
+    print(f"\n{'#' * 60}")
     print(f"  Tech Weekly Review — {week_str}")
-    print(f"{'#'*60}\n")
+    print(f"{'#' * 60}\n")
 
-    prompt_system = _load_prompt()
     # daily_reports was already loaded by the guard check above
     topic_trends = _load_topic_trends_week(week_str)
     resolved_predictions = _load_resolved_predictions_week(week_str)
@@ -178,11 +178,13 @@ def run_weekly_review(week_str: str | None = None) -> str:
             try:
                 dt = date.fromisoformat(u.get("update_date", ""))
                 if _iso_week(dt) == week_str:
-                    pred_updates_this_week.append({
-                        "prediction_id": p["prediction_id"],
-                        "prediction": p["prediction"],
-                        **u,
-                    })
+                    pred_updates_this_week.append(
+                        {
+                            "prediction_id": p["prediction_id"],
+                            "prediction": p["prediction"],
+                            **u,
+                        }
+                    )
             except Exception:
                 pass
 
@@ -190,34 +192,41 @@ def run_weekly_review(week_str: str | None = None) -> str:
     try:
         all_market_signals = load_market_signals_history(days=14)
         market_signals_this_week = [
-            s for s in all_market_signals
-            if _iso_week(date.fromisoformat(s.get("run_date", "1970-01-01"))) == week_str
+            s for s in all_market_signals if _iso_week(date.fromisoformat(s.get("run_date", "1970-01-01"))) == week_str
         ]
     except Exception:
         market_signals_this_week = []
 
-    user_msg = json.dumps({
-        "week": week_str,
-        "daily_reports": daily_reports,
-        "prediction_updates_this_week": pred_updates_this_week,
-        "resolved_predictions": resolved_predictions,
-        "open_predictions": [
-            {"prediction_id": p.prediction_id, "prediction": p.prediction,
-             "probability": p.probability, "time_horizon": p.time_horizon}
-            for p in open_predictions
-        ],
-        "brier_scores": scorecard,
-        "topic_trend_history": topic_trends,
-        "trending_weekly_summary": trending_section or None,
-        "market_signal_performance": market_signals_this_week or None,
-    }, ensure_ascii=False)
+    user_msg = json.dumps(
+        {
+            "week": week_str,
+            "daily_reports": daily_reports,
+            "prediction_updates_this_week": pred_updates_this_week,
+            "resolved_predictions": resolved_predictions,
+            "open_predictions": [
+                {
+                    "prediction_id": p.prediction_id,
+                    "prediction": p.prediction,
+                    "probability": p.probability,
+                    "time_horizon": p.time_horizon,
+                }
+                for p in open_predictions
+            ],
+            "brier_scores": scorecard,
+            "topic_trend_history": topic_trends,
+            "trending_weekly_summary": trending_section or None,
+            "market_signal_performance": market_signals_this_week or None,
+        },
+        ensure_ascii=False,
+    )
 
     max_tokens = cfg.get("model", {}).get("max_tokens_weekly", 16000)
-    model = cfg.get("model", {}).get("default", DEFAULT_MODEL)
+    model = cfg.get("model", {}).get("default", DEFAULT_WEEKLY_MODEL)
+    runner = prompt_runner or PromptRunner()
 
-    review = call_claude(
-        system=prompt_system,
-        user=user_msg,
+    review = runner.run_text(
+        prompt_path="weekly_review.md",
+        payload=user_msg,
         model=model,
         max_tokens=max_tokens,
         cache_system=True,
@@ -232,6 +241,7 @@ def run_weekly_review(week_str: str | None = None) -> str:
     if cfg.get("notion", {}).get("enabled", False):
         try:
             from publish_notion import publish_to_notion
+
             # Use Monday of the ISO week as the representative date for Notion's Date property.
             monday = datetime.strptime(f"{week_str}-1", "%G-W%V-%u").date()
             notion_url = publish_to_notion(

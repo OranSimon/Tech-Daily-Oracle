@@ -17,26 +17,25 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from claude_client import call_claude, DEFAULT_MODEL
+from prompt_runner import PromptRunner
 from storage import (
-    save_monthly_review, load_recent_reports, load_open_predictions,
-    load_trending_history, load_market_signals_history,
+    save_monthly_review,
+    load_recent_reports,
+    load_open_predictions,
+    load_trending_history,
+    load_market_signals_history,
 )
 from score_predictions import compute_scorecard
 from collect_trending import collect_trending_snapshot
 from analyze_trending import analyze_trending
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_MONTHLY_MODEL = "claude-sonnet-4-6"
 
 
 def _load_config() -> dict:
     with open(os.path.join(ROOT, "config.yml")) as f:
         return yaml.safe_load(f)
-
-
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "monthly_review.md")) as f:
-        return f.read()
 
 
 def _week_in_month(week_str: str, month_str: str) -> bool:
@@ -59,17 +58,19 @@ def _load_weekly_reviews_for_month(month_str: str) -> list[dict]:
     for fname in sorted(os.listdir(weekly_dir)):
         if not fname.endswith(".md"):
             continue
-        week_str = fname.replace(".md", "")   # e.g. "2026-W19"
+        week_str = fname.replace(".md", "")  # e.g. "2026-W19"
         if not _week_in_month(week_str, month_str):
             continue
         path = os.path.join(weekly_dir, fname)
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
-            reviews.append({
-                "week": week_str,
-                "content": content[:4000],
-            })
+            reviews.append(
+                {
+                    "week": week_str,
+                    "content": content[:4000],
+                }
+            )
         except Exception:
             pass
     return reviews
@@ -90,10 +91,12 @@ def _load_daily_summaries_for_month(month_str: str) -> list[dict]:
         try:
             with open(os.path.join(daily_dir, fname), encoding="utf-8") as f:
                 content = f.read()
-            summaries.append({
-                "date": report_date,
-                "content": content[:2000],  # trim to keep payload manageable
-            })
+            summaries.append(
+                {
+                    "date": report_date,
+                    "content": content[:2000],  # trim to keep payload manageable
+                }
+            )
         except Exception:
             pass
     return summaries
@@ -157,8 +160,7 @@ def _load_prediction_performance(month_str: str) -> dict:
                 if p.get("created_date", "").startswith(month_str):
                     opened_this_month += 1
                 for u in p.get("updates", []):
-                    if (u.get("update_date", "").startswith(month_str)
-                            and u.get("resolution", {}).get("resolved")):
+                    if u.get("update_date", "").startswith(month_str) and u.get("resolution", {}).get("resolved"):
                         outcome = u["resolution"].get("resolved_as")
                         if outcome == "true":
                             resolved_this_month_true += 1
@@ -174,7 +176,7 @@ def _load_prediction_performance(month_str: str) -> dict:
     }
 
 
-def run_monthly_review(month_str: str | None = None) -> str:
+def run_monthly_review(month_str: str | None = None, prompt_runner: PromptRunner | None = None) -> str:
     cfg = _load_config()
     # Local-timezone "today" so "previous month" is computed in CST, not UTC.
     tz_name = cfg.get("run", {}).get("timezone", "Asia/Shanghai")
@@ -202,11 +204,10 @@ def run_monthly_review(month_str: str | None = None) -> str:
         )
         return ""
 
-    print(f"\n{'#'*60}")
+    print(f"\n{'#' * 60}")
     print(f"  Tech Monthly Strategic Review — {month_str}")
-    print(f"{'#'*60}\n")
+    print(f"{'#' * 60}\n")
 
-    prompt_system = _load_prompt()
     # weekly_reviews and daily_summaries already loaded by the guard check above
     topic_trends = _load_topic_trends_month(month_str)
 
@@ -228,35 +229,40 @@ def run_monthly_review(month_str: str | None = None) -> str:
     # Market signal history for this month (Phase 4+; empty list when disabled)
     try:
         all_market_signals = load_market_signals_history(days=95)  # full month + buffer
-        market_signals_this_month = [
-            s for s in all_market_signals
-            if s.get("run_date", "")[:7] == month_str
-        ]
+        market_signals_this_month = [s for s in all_market_signals if s.get("run_date", "")[:7] == month_str]
     except Exception:
         market_signals_this_month = []
 
-    user_msg = json.dumps({
-        "month": month_str,
-        "weekly_reviews": weekly_reviews,
-        "daily_summaries": daily_summaries,
-        "topic_trend_history": topic_trends,
-        "prediction_performance": prediction_perf,
-        "company_mention_trends": company_trends,
-        "open_predictions": [
-            {"prediction_id": p.prediction_id, "prediction": p.prediction,
-             "probability": p.probability, "time_horizon": p.time_horizon}
-            for p in open_predictions
-        ],
-        "trending_monthly_summary": trending_section or None,
-        "market_signal_performance": market_signals_this_month or None,
-    }, ensure_ascii=False)
+    user_msg = json.dumps(
+        {
+            "month": month_str,
+            "weekly_reviews": weekly_reviews,
+            "daily_summaries": daily_summaries,
+            "topic_trend_history": topic_trends,
+            "prediction_performance": prediction_perf,
+            "company_mention_trends": company_trends,
+            "open_predictions": [
+                {
+                    "prediction_id": p.prediction_id,
+                    "prediction": p.prediction,
+                    "probability": p.probability,
+                    "time_horizon": p.time_horizon,
+                }
+                for p in open_predictions
+            ],
+            "trending_monthly_summary": trending_section or None,
+            "market_signal_performance": market_signals_this_month or None,
+        },
+        ensure_ascii=False,
+    )
 
     max_tokens = cfg.get("model", {}).get("max_tokens_monthly", 24000)
-    model = cfg.get("model", {}).get("default", DEFAULT_MODEL)
+    model = cfg.get("model", {}).get("default", DEFAULT_MONTHLY_MODEL)
+    runner = prompt_runner or PromptRunner()
 
-    review = call_claude(
-        system=prompt_system,
-        user=user_msg,
+    review = runner.run_text(
+        prompt_path="monthly_review.md",
+        payload=user_msg,
         model=model,
         max_tokens=max_tokens,
         cache_system=True,
@@ -271,6 +277,7 @@ def run_monthly_review(month_str: str | None = None) -> str:
     if cfg.get("notion", {}).get("enabled", False):
         try:
             from publish_notion import publish_to_notion
+
             # Use the 1st of the month as the representative date for Notion's Date property.
             notion_url = publish_to_notion(
                 f"{month_str}-01",

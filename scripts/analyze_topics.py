@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import yaml
 
-from claude_client import call_claude_json
+from analyzer_helpers import schema_to_dataclass
+from llm_schemas import TopicSummaryResponse
+from prompt_runner import PromptRunner
 from state import NormalizedEvent, TopicSummary
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,11 +21,6 @@ MAX_WORKERS = 5   # concurrent Claude calls
 def _load_taxonomy() -> dict[str, Any]:
     with open(os.path.join(ROOT, "sources", "topic_taxonomy.yml")) as f:
         return yaml.safe_load(f)
-
-
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "topic_analysis.md")) as f:
-        return f.read()
 
 
 def _events_for_topic(topic_id: str, keywords: list[str],
@@ -38,9 +34,12 @@ def _events_for_topic(topic_id: str, keywords: list[str],
     return matched
 
 
-def _build_user_message(topic_id: str, topic_label: str, keywords: list[str],
-                         events: list[NormalizedEvent],
-                         prev_status: str | None) -> str:
+def _build_payload(
+    topic_id: str,
+    topic_label: str,
+    events: list[NormalizedEvent],
+    prev_status: str | None,
+) -> dict[str, Any]:
     events_payload = [
         {
             "event_id": e.event_id,
@@ -52,12 +51,12 @@ def _build_user_message(topic_id: str, topic_label: str, keywords: list[str],
         }
         for e in events[:30]
     ]
-    return json.dumps({
+    return {
         "topic": {"id": topic_id, "label": topic_label},
         "events": events_payload,
         "previous_trend_status": prev_status,
         "history_summary": None,
-    }, ensure_ascii=False)
+    }
 
 
 def _fallback_summary(topic_id: str, label: str, prev_status: str,
@@ -89,7 +88,7 @@ def _analyze_one_topic(
     topic_data: dict[str, Any],
     events: list[NormalizedEvent],
     prev: dict[str, str],
-    prompt_system: str,
+    prompt_runner: PromptRunner,
 ) -> tuple[str, TopicSummary]:
     label = topic_data.get("label", topic_id)
     keywords = topic_data.get("keywords", [])
@@ -117,33 +116,14 @@ def _analyze_one_topic(
         )
 
     try:
-        user_msg = _build_user_message(
-            topic_id, label, keywords, matched_events, prev.get(topic_id)
-        )
-        result = call_claude_json(
-            system=prompt_system,
-            user=user_msg,
+        payload = _build_payload(topic_id, label, matched_events, prev.get(topic_id))
+        result = prompt_runner.run_json(
+            prompt_path="topic_analysis.md",
+            payload=payload,
+            schema=TopicSummaryResponse,
             max_tokens=4096,
         )
-        summary = TopicSummary(
-            topic_id=result.get("topic_id", topic_id),
-            topic_label=result.get("topic_label", label),
-            trend_status=result.get("trend_status", "unchanged"),
-            trend_change=result.get("trend_change", "same"),
-            confidence=result.get("confidence", "low"),
-            signal_count=result.get("signal_count", len(matched_events)),
-            key_signal_summary=result.get("key_signal_summary", ""),
-            key_events=result.get("key_events", []),
-            multi_signal_check=result.get("multi_signal_check", {}),
-            signal_classification=result.get("signal_classification", "unclear"),
-            classification_reasoning=result.get("classification_reasoning", ""),
-            short_term_signals=result.get("short_term_signals", []),
-            medium_term_signals=result.get("medium_term_signals", []),
-            long_term_signals=result.get("long_term_signals", []),
-            contradictions=result.get("contradictions", []),
-            report_worthy=result.get("report_worthy", True),
-            report_snippet=result.get("report_snippet", ""),
-        )
+        summary = schema_to_dataclass(result, TopicSummary)
         print(f"  [Topics] {topic_id}: {summary.trend_status} ({len(matched_events)} events)")
         return topic_id, summary
 
@@ -157,17 +137,19 @@ def _analyze_one_topic(
 def analyze_topics(
     events: list[NormalizedEvent],
     previous_trend_statuses: dict[str, str] | None = None,
+    prompt_runner: PromptRunner | None = None,
+    max_workers: int = MAX_WORKERS,
 ) -> dict[str, TopicSummary]:
     taxonomy = _load_taxonomy()
-    prompt_system = _load_prompt()
+    runner = prompt_runner or PromptRunner()
     prev = previous_trend_statuses or {}
     summaries: dict[str, TopicSummary] = {}
     topics = taxonomy.get("topics", {})
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(
-                _analyze_one_topic, tid, tdata, events, prev, prompt_system
+                _analyze_one_topic, tid, tdata, events, prev, runner
             ): tid
             for tid, tdata in topics.items()
         }

@@ -12,6 +12,8 @@ from typing import Any
 import anthropic
 import yaml
 
+from config_models import NormalizationConfig, load_normalization_config
+from pipeline_state import CollectionState, CorpusState
 from state import RawEvent, NormalizedEvent
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,18 +111,18 @@ def _title_hash(title: str) -> str:
     return hashlib.md5(" ".join(tokens).encode()).hexdigest()[:12]
 
 
-def _detect_topics(text: str) -> list[str]:
+def _detect_topics(text: str, config: NormalizationConfig) -> list[str]:
     text_lower = text.lower()
     matched = []
-    for topic, keywords in TOPIC_KEYWORDS.items():
+    for topic, keywords in config.topic_keywords.items():
         if any(kw.lower() in text_lower for kw in keywords):
             matched.append(topic)
     return matched or ["general"]
 
 
-def _detect_companies(text: str) -> list[str]:
+def _detect_companies(text: str, config: NormalizationConfig) -> list[str]:
     matched = []
-    for company, keywords in COMPANY_KEYWORDS.items():
+    for company, keywords in config.company_keywords.items():
         if any(kw in text for kw in keywords):
             matched.append(company)
     return matched
@@ -200,14 +202,19 @@ def _score_reliability(raw: RawEvent) -> float:
     return 0.50
 
 
-def normalize_events(raw_events: list[RawEvent], run_date: str = "") -> list[NormalizedEvent]:
+def normalize_events(
+    raw_events: list[RawEvent],
+    run_date: str = "",
+    config: NormalizationConfig | None = None,
+) -> list[NormalizedEvent]:
+    domain_config = config or load_normalization_config()
     seen_hashes: dict[str, NormalizedEvent] = {}
     normalized: list[NormalizedEvent] = []
 
     for raw in raw_events:
         combined_text = f"{raw.raw_title} {raw.raw_content}"
-        topics = _detect_topics(combined_text)
-        companies = _detect_companies(combined_text)
+        topics = _detect_topics(combined_text, domain_config)
+        companies = _detect_companies(combined_text, domain_config)
 
         # Hacker News high-score stories with no core-tech topic → tag as general_interesting
         # These are genuinely interesting stories that would pass HN's community filter at ≥300.
@@ -264,6 +271,16 @@ def normalize_events(raw_events: list[RawEvent], run_date: str = "") -> list[Nor
     normalized.sort(key=lambda e: e.importance_score, reverse=True)
     print(f"  [Normalize] {len(normalized)} unique events (from {len(raw_events)} raw)")
     return normalized
+
+
+def normalize_collection_state(
+    collection_state: CollectionState,
+    run_date: str = "",
+    config: NormalizationConfig | None = None,
+) -> CorpusState:
+    return CorpusState(
+        normalized_events=normalize_events(collection_state.raw_events, run_date=run_date, config=config),
+    )
 
 
 if __name__ == "__main__":

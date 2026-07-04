@@ -8,16 +8,11 @@ import os
 from typing import Any
 
 import yaml
-
-from claude_client import call_claude, DEFAULT_MODEL
+from prompt_runner import PromptRunner
 from state import TechDailyState
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "daily_brief.md")) as f:
-        return f.read()
+DEFAULT_DAILY_MODEL = "claude-sonnet-4-6"
 
 
 def _load_config() -> dict[str, Any]:
@@ -55,11 +50,10 @@ def _safe_dict(obj: Any) -> Any:
 
 
 def _build_report_payload(state: TechDailyState) -> dict[str, Any]:
-    """Build the structured payload sent to Claude for report generation."""
+    """Build the structured payload sent to the LLM for report generation."""
 
     # Top events by importance
-    top_events = sorted(state.normalized_events,
-                        key=lambda e: e.importance_score, reverse=True)[:30]
+    top_events = sorted(state.normalized_events, key=lambda e: e.importance_score, reverse=True)[:30]
 
     # Paper analyses — sort by score
     sorted_papers = sorted(
@@ -69,44 +63,29 @@ def _build_report_payload(state: TechDailyState) -> dict[str, Any]:
     )
 
     # GitHub — top 3 Watch verdicts
-    top_github = [
-        v for v in state.github_project_analyses.values()
-        if v.verdict == "Watch"
-    ][:3]
+    top_github = [v for v in state.github_project_analyses.values() if v.verdict == "Watch"][:3]
 
     # Company analyses — significant only
-    sig_companies = {
-        k: v for k, v in state.company_analyses.items()
-        if v.significance in ("high", "medium")
-    }
+    sig_companies = {k: v for k, v in state.company_analyses.items() if v.significance in ("high", "medium")}
 
     return {
         "run_date": state.run_date,
         "normalized_events": [_safe_dict(e) for e in top_events],
-        "topic_summaries": {k: _safe_dict(v) for k, v in state.topic_summaries.items()
-                             if v.report_worthy},
+        "topic_summaries": {k: _safe_dict(v) for k, v in state.topic_summaries.items() if v.report_worthy},
         "company_analyses": {k: _safe_dict(v) for k, v in sig_companies.items()},
         "paper_analyses": [_safe_dict(p) for p in sorted_papers[:8] if p.report_worthy],
         "github_project_analyses": [_safe_dict(g) for g in top_github],
-        "social_signal_analyses": {k: _safe_dict(v)
-                                    for k, v in state.social_signal_analyses.items()
-                                    if v.report_worthy},
-        "macro_impact_analyses": {k: _safe_dict(v)
-                                   for k, v in state.macro_impact_analyses.items()
-                                   if v.report_worthy},
+        "social_signal_analyses": {
+            k: _safe_dict(v) for k, v in state.social_signal_analyses.items() if v.report_worthy
+        },
+        "macro_impact_analyses": {k: _safe_dict(v) for k, v in state.macro_impact_analyses.items() if v.report_worthy},
         "open_predictions": [_safe_dict(p) for p in state.open_predictions],
         "prediction_updates": [_safe_dict(u) for u in state.prediction_updates],
         "new_predictions": [_safe_dict(p) for p in state.new_predictions],
         "previous_reports_summary": _previous_reports_summary(state),
         "history_context": {
-            "weekly_reviews": [
-                {"week": r.report_date, "excerpt": r.content[:1500]}
-                for r in state.weekly_reviews
-            ],
-            "monthly_reviews": [
-                {"month": r.report_date, "excerpt": r.content[:2000]}
-                for r in state.monthly_reviews
-            ],
+            "weekly_reviews": [{"week": r.report_date, "excerpt": r.content[:1500]} for r in state.weekly_reviews],
+            "monthly_reviews": [{"month": r.report_date, "excerpt": r.content[:2000]} for r in state.monthly_reviews],
             "topic_trend_30d": state.recent_topic_trends[-90:],
             "company_mentions_90d": state.recent_company_mentions[-120:],
         },
@@ -123,19 +102,22 @@ def _build_report_payload(state: TechDailyState) -> dict[str, Any]:
     }
 
 
-def generate_daily_report(state: TechDailyState) -> str:
+def generate_daily_report(
+    state: TechDailyState,
+    prompt_runner: PromptRunner | None = None,
+) -> str:
     cfg = _load_config()
-    prompt_system = _load_prompt()
+    runner = prompt_runner or PromptRunner()
     max_tokens = cfg.get("model", {}).get("max_tokens_daily", 8000)
-    model = cfg.get("model", {}).get("default", DEFAULT_MODEL)
+    model = cfg.get("model", {}).get("default", DEFAULT_DAILY_MODEL)
 
     payload = _build_report_payload(state)
     user_msg = json.dumps(payload, ensure_ascii=False)
 
     print(f"  [Report] Generating daily brief for {state.run_date}...")
-    report = call_claude(
-        system=prompt_system,
-        user=user_msg,
+    report = runner.run_text(
+        prompt_path="daily_brief.md",
+        payload=user_msg,
         model=model,
         max_tokens=max_tokens,
         cache_system=True,

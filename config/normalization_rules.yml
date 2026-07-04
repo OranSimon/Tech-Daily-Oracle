@@ -1,0 +1,296 @@
+topic_keywords:
+  ai_models:
+    - LLM
+    - GPT
+    - language model
+    - foundation model
+    - multimodal
+    - reasoning
+    - benchmark
+    - fine-tuning
+    - RLHF
+    - model release
+    - Llama
+    - Gemini
+    - Claude
+    - GPT-4
+    - o1
+    - o3
+    - Qwen
+    - Mistral
+  ai_agents:
+    - AI agent
+    - agentic
+    - MCP
+    - computer use
+    - tool use
+    - function calling
+    - multi-agent
+    - autonomous agent
+    - workflow automation
+  embodied_ai_robotics:
+    - robot
+    - humanoid
+    - embodied
+    - locomotion
+    - manipulation
+    - dexterous
+    - mobile robot
+    - robot learning
+  ai_infrastructure:
+    - inference
+    - GPU cluster
+    - H100
+    - H200
+    - B200
+    - Blackwell
+    - Hopper
+    - training cluster
+    - vLLM
+    - TensorRT
+    - serving
+    - CoreWeave
+    - Lambda
+    - Groq
+    - Cerebras
+  semiconductors:
+    - semiconductor
+    - chip
+    - TSMC
+    - ASML
+    - HBM
+    - CoWoS
+    - packaging
+    - foundry
+    - gallium
+    - germanium
+    - Nvidia
+    - AMD
+    - Intel
+  startups_unicorns:
+    - startup
+    - unicorn
+    - Series A
+    - Series B
+    - seed
+    - funding
+    - VC
+    - valuation
+    - IPO
+    - founder
+  papers_research:
+    - arXiv
+    - paper
+    - NeurIPS
+    - ICML
+    - ICLR
+    - CVPR
+    - preprint
+    - research
+    - dataset
+    - benchmark
+  github_opensource:
+    - GitHub
+    - open source
+    - repository
+    - stars
+    - trending
+    - fork
+  macro_geopolitical:
+    - export control
+    - sanctions
+    - tariff
+    - trade war
+    - chip ban
+    - AI regulation
+    - EU AI Act
+    - policy
+    - geopolitical
+  big_tech_strategy:
+    - earnings
+    - capex
+    - layoffs
+    - acquisition
+    - M&A
+    - antitrust
+    - restructuring
+  general_interesting: []
+  science_breakthrough:
+    - particle physics
+    - quantum mechanics
+    - quantum physics
+    - chemistry breakthrough
+    - molecule
+    - biology discovery
+    - genetics
+    - CRISPR
+    - protein folding
+    - evolution
+    - Nobel Prize
+    - scientific discovery
+  health_biotech:
+    - FDA approval
+    - clinical trial
+    - drug approval
+    - vaccine
+    - cancer treatment
+    - genomics
+    - longevity
+    - pandemic
+    - outbreak
+    - biotech
+    - pharmaceutical
+    - mRNA
+    - gene therapy
+    - antibiotic resistance
+  global_events:
+    - earthquake
+    - hurricane
+    - typhoon
+    - flood
+    - volcanic eruption
+    - natural disaster
+    - pandemic
+    - epidemic
+    - global crisis
+    - UN resolution
+    - G7 summit
+    - G20 summit
+  astronomy_space:
+    - telescope
+    - galaxy
+    - black hole
+    - dark matter
+    - dark energy
+    - exoplanet
+    - asteroid
+    - NASA
+    - ESA
+    - rocket launch
+    - satellite orbit
+    - ISS
+    - James Webb
+    - JWST
+    - cosmology
+    - supernova
+    - neutron star
+    - gravitational wave
+    - astronaut
+    - lunar mission
+    - Mars mission
+    - SpaceX Starship
+  materials_science:
+    - superconductor
+    - graphene
+    - solid-state battery
+    - energy storage material
+    - nanomaterial
+    - metamaterial
+    - 2D material
+    - perovskite
+    - room-temperature superconductor
+    - topological material
+    - quantum material
+    - advanced alloy
+company_keywords:
+  Apple:
+    - Apple
+    - AAPL
+    - iPhone
+    - Mac
+    - iOS
+    - WWDC
+  Microsoft:
+    - Microsoft
+    - MSFT
+    - Azure
+    - Windows
+    - Copilot
+  Google:
+    - Google
+    - Alphabet
+    - GOOGL
+    - Gemini
+    - DeepMind
+    - TPU
+    - Waymo
+  Amazon:
+    - Amazon
+    - AMZN
+    - AWS
+    - Alexa
+  Meta:
+    - Meta
+    - Facebook
+    - Llama
+    - WhatsApp
+    - Instagram
+    - META
+    - Ray-Ban
+  Nvidia:
+    - Nvidia
+    - NVDA
+    - GPU
+    - CUDA
+    - Blackwell
+    - Hopper
+    - H100
+    - GTC
+  Tesla:
+    - Tesla
+    - TSLA
+    - Elon Musk
+    - FSD
+    - Optimus
+  OpenAI:
+    - OpenAI
+    - ChatGPT
+    - GPT-4
+    - o1
+    - o3
+    - DALL-E
+    - Sora
+  Anthropic:
+    - Anthropic
+    - Claude
+  DeepMind:
+    - DeepMind
+    - AlphaFold
+    - Gemini
+  xAI:
+    - xAI
+    - Grok
+  Huawei:
+    - Huawei
+    - Kirin
+    - Ascend
+  ByteDance:
+    - ByteDance
+    - TikTok
+    - Doubao
+  Alibaba:
+    - Alibaba
+    - BABA
+    - Qwen
+    - Aliyun
+    - AliCloud
+  DeepSeek:
+    - DeepSeek
+  Figure AI:
+    - Figure AI
+    - Figure robot
+  Physical Intelligence:
+    - Physical Intelligence
+    - π0
+  Boston Dynamics:
+    - Boston Dynamics
+    - Spot
+    - Atlas
+  CoreWeave:
+    - CoreWeave
+  Groq:
+    - Groq
+  Mistral:
+    - Mistral
+  Perplexity:
+    - Perplexity

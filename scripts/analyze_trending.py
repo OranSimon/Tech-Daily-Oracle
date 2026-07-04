@@ -19,13 +19,11 @@ Acceleration is computed from data/trending_snapshots.jsonl entries:
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
-from claude_client import call_claude_json
-from state import TrendingItem, TrendingSnapshot, CrossListHit, TrendingAnalysis
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from llm_schemas import TrendingAnalysisResponse
+from prompt_runner import PromptRunner
+from state import CrossListHit, TrendingAnalysis, TrendingItem, TrendingSnapshot
 
 _ACCEL_EMOJI = {
     "accelerating": "📈",
@@ -35,14 +33,10 @@ _ACCEL_EMOJI = {
 }
 
 
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "trending_analysis.md")) as f:
-        return f.read()
-
-
 # ---------------------------------------------------------------------------
 # Cross-list detection
 # ---------------------------------------------------------------------------
+
 
 def _norm_id(item_id: str) -> str:
     """Normalise to lowercase owner/name form for cross-list comparison."""
@@ -70,22 +64,25 @@ def _find_cross_list_hits(
             continue
         hf = hf_by_norm[norm]
         accel = _compute_acceleration(gh.item_id, "github_repo", history)
-        hits.append(CrossListHit(
-            item_id=gh.item_id,
-            match_type="exact",
-            github_item=gh,
-            hf_item=hf,
-            acceleration=accel["acceleration"],
-            days_in_top_lists=accel["days_in_top"],
-            rank_history=accel["rank_history"],
-            velocity_history=accel["velocity_history"],
-        ))
+        hits.append(
+            CrossListHit(
+                item_id=gh.item_id,
+                match_type="exact",
+                github_item=gh,
+                hf_item=hf,
+                acceleration=accel["acceleration"],
+                days_in_top_lists=accel["days_in_top"],
+                rank_history=accel["rank_history"],
+                velocity_history=accel["velocity_history"],
+            )
+        )
     return hits
 
 
 # ---------------------------------------------------------------------------
 # Acceleration computation
 # ---------------------------------------------------------------------------
+
 
 def _compute_acceleration(item_id: str, item_type: str, history: list[dict]) -> dict[str, Any]:
     """
@@ -116,7 +113,7 @@ def _compute_acceleration(item_id: str, item_type: str, history: list[dict]) -> 
     older_rank = sum(ranks[:-2]) / max(len(ranks) - 2, 1)
 
     vel_up = recent_vel > older_vel * 1.15
-    rank_up = recent_rank < older_rank          # lower number = higher position
+    rank_up = recent_rank < older_rank  # lower number = higher position
 
     if vel_up and rank_up:
         accel = "accelerating"
@@ -137,11 +134,12 @@ def _compute_acceleration(item_id: str, item_type: str, history: list[dict]) -> 
 # LLM analysis (batch, new items only)
 # ---------------------------------------------------------------------------
 
+
 def _analyze_new_items_batch(
     items: list[TrendingItem],
-    prompt_system: str,
+    prompt_runner: PromptRunner,
 ) -> dict[str, str]:
-    """Send a batch of new trending items to Claude. Returns item_id → snippet."""
+    """Send a batch of new trending items to the LLM. Returns item_id → snippet."""
     if not items:
         return {}
 
@@ -156,39 +154,38 @@ def _analyze_new_items_batch(
             "velocity_score": round(item.velocity_score, 1),
             "language": item.language,
             "extra": {
-                k: v for k, v in item.extra.items()
-                if k in ("collection_names", "authors", "days_appeared",
-                         "avg_upvotes", "pipeline_tag", "forks_increment")
+                k: v
+                for k, v in item.extra.items()
+                if k
+                in ("collection_names", "authors", "days_appeared", "avg_upvotes", "pipeline_tag", "forks_increment")
             },
         }
         for item in items
     ]
 
-    try:
-        # Returns an ARRAY of {item_id, report_snippet} — output scales with
-        # batch size. Daily uses top_n=5 across 3 sources (up to 15 items),
-        # weekly/monthly may pass more. Each snippet is ~150-300 tokens, so
-        # 15 items × 250 = 3750 tokens — 4096 is tight, 8192 is comfortable.
-        results = call_claude_json(
-            system=prompt_system,
-            user=json.dumps({"trending_items": payload}, ensure_ascii=False),
-            max_tokens=8192,
-        )
-        if isinstance(results, list):
-            return {r["item_id"]: r.get("report_snippet", "") for r in results if "item_id" in r}
-    except Exception as e:
-        print(f"  [Trending] LLM analysis failed: {e}")
-    return {}
+    # Returns an ARRAY of {item_id, report_snippet} — output scales with
+    # batch size. Daily uses top_n=5 across 3 sources (up to 15 items),
+    # weekly/monthly may pass more. Each snippet is ~150-300 tokens, so
+    # 15 items × 250 = 3750 tokens — 4096 is tight, 8192 is comfortable.
+    results = prompt_runner.run_json(
+        prompt_path="trending_analysis.md",
+        payload=json.dumps({"trending_items": payload}, ensure_ascii=False),
+        schema=TrendingAnalysisResponse,
+        max_tokens=8192,
+    )
+    return {item.item_id: item.report_snippet for item in results.root}
 
 
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
+
 def analyze_trending(
     snapshot: TrendingSnapshot,
     history: list[dict],
     top_n: int = 5,
+    prompt_runner: PromptRunner | None = None,
 ) -> TrendingAnalysis:
     """
     Analyse a trending snapshot.
@@ -200,7 +197,7 @@ def analyze_trending(
       4. Programmatic snippets for returning items (no LLM cost)
       5. Assemble formatted report section
     """
-    prompt_system = _load_prompt()
+    runner = prompt_runner or PromptRunner()
 
     # 1. Cross-list detection
     cross_hits = _find_cross_list_hits(
@@ -211,11 +208,7 @@ def analyze_trending(
     cross_ids = {h.item_id for h in cross_hits}
 
     # 2. Classify all non-cross-list items as new vs. returning
-    all_items = (
-        snapshot.github_items[:top_n]
-        + snapshot.hf_paper_items[:top_n]
-        + snapshot.hf_model_items[:top_n]
-    )
+    all_items = snapshot.github_items[:top_n] + snapshot.hf_paper_items[:top_n] + snapshot.hf_model_items[:top_n]
     new_items: list[TrendingItem] = []
     returning: list[tuple[TrendingItem, dict]] = []
 
@@ -229,9 +222,12 @@ def analyze_trending(
             returning.append((item, accel))
 
     # 3. LLM analysis for new items (single batched call)
-    item_analyses = _analyze_new_items_batch(new_items, prompt_system)
-    print(f"  [Trending] {len(new_items)} new, {len(returning)} returning, "
-          f"{len(cross_hits)} cross-list")
+    try:
+        item_analyses = _analyze_new_items_batch(new_items, runner)
+    except Exception as e:
+        print(f"  [Trending] LLM analysis failed: {e}")
+        item_analyses = {}
+    print(f"  [Trending] {len(new_items)} new, {len(returning)} returning, {len(cross_hits)} cross-list")
 
     # 4. Programmatic snippets for returning items
     for item, accel in returning:
@@ -239,17 +235,12 @@ def analyze_trending(
         days = accel["days_in_top"]
         vel = item.velocity_score
         item_analyses[item.item_id] = (
-            f"{emoji} **{item.title}** — {accel['acceleration']} "
-            f"(day {days + 1} in trending, velocity: {vel:,.0f})"
+            f"{emoji} **{item.title}** — {accel['acceleration']} (day {days + 1} in trending, velocity: {vel:,.0f})"
         )
 
     # 5. Assemble report section (Chinese headers, English proper nouns)
-    period_zh = {"daily": "今日", "weekly": "本周", "monthly": "本月"}.get(
-        snapshot.period, snapshot.period
-    )
-    lines: list[str] = [
-        f"\n## 🔥 趋势榜单 — {period_zh} ({snapshot.snapshot_date})\n"
-    ]
+    period_zh = {"daily": "今日", "weekly": "本周", "monthly": "本月"}.get(snapshot.period, snapshot.period)
+    lines: list[str] = [f"\n## 🔥 趋势榜单 — {period_zh} ({snapshot.snapshot_date})\n"]
 
     if cross_hits:
         lines.append("### ↔️ 跨平台动量（GitHub + HuggingFace 同时上榜）\n")
@@ -274,10 +265,7 @@ def analyze_trending(
         for item in snapshot.github_items[:top_n]:
             if item.item_id in cross_ids:
                 continue
-            snippet = item_analyses.get(
-                item.item_id,
-                f"**{item.title}** (+{item.velocity_score:,.0f} ⭐)"
-            )
+            snippet = item_analyses.get(item.item_id, f"**{item.title}** (+{item.velocity_score:,.0f} ⭐)")
             lines.append(f"- {snippet}")
         lines.append("")
 
@@ -287,14 +275,8 @@ def analyze_trending(
             days = item.extra.get("days_appeared", 1)
             days_note = f" · 连续上榜 {days} 天" if days > 1 else ""
             # Fallback snippet — show "(just posted)" if no upvotes yet
-            upvote_note = (
-                "(just posted)" if item.velocity_score == 0
-                else f"(👍 {int(item.velocity_score)})"
-            )
-            snippet = item_analyses.get(
-                item.item_id,
-                f"**{item.title}** {upvote_note}{days_note}"
-            )
+            upvote_note = "(just posted)" if item.velocity_score == 0 else f"(👍 {int(item.velocity_score)})"
+            snippet = item_analyses.get(item.item_id, f"**{item.title}** {upvote_note}{days_note}")
             lines.append(f"- {snippet}")
         lines.append("")
 

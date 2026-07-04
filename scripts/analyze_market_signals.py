@@ -8,10 +8,10 @@ Phase 5: Adds yfinance price/options data and FRED macro data to the prompt.
          Activated by config.market_signal.live_data = true.
 
 Architecture:
-  - One Claude call per triggered ticker (not batched — each signal is independent)
+  - One LLM call per triggered ticker (not batched — each signal is independent)
   - Tickers are filtered by `only_on_event_day` and `min_importance_to_trigger`
   - Results are stored in TechDailyState.market_signal_analyses
-  - A pre-formatted `report_snippet` is built from the Claude JSON response
+  - A pre-formatted `report_snippet` is built from the validated JSON response
 """
 
 from __future__ import annotations
@@ -23,22 +23,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import yaml
-
-from claude_client import call_claude_json, DEFAULT_MODEL
-from state import TechDailyState, MarketSignalAnalysis
+from analyzer_helpers import schema_to_dataclass
+from llm_schemas import MarketSignalAnalysisResponse
+from prompt_runner import PromptRunner
+from state import MarketSignalAnalysis, TechDailyState
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "market_signal.md")) as f:
-        return f.read()
-
-
 def _load_watchlist(config: dict) -> dict:
-    watchlist_file = config.get("market_signal", {}).get(
-        "watchlist_file", "sources/market_watchlist.yml"
-    )
+    watchlist_file = config.get("market_signal", {}).get("watchlist_file", "sources/market_watchlist.yml")
     path = os.path.join(ROOT, watchlist_file)
     with open(path) as f:
         return yaml.safe_load(f)
@@ -57,6 +51,7 @@ def _safe_dict(obj: Any) -> Any:
 # ---------------------------------------------------------------------------
 # Company name matching
 # ---------------------------------------------------------------------------
+
 
 def _find_company_analysis(watchlist_company: str, company_analyses: dict) -> Any | None:
     """Case-insensitive match of watchlist company name to company_analyses keys.
@@ -80,10 +75,10 @@ def _find_related_events(watchlist_company: str, state: TechDailyState, top_n: i
     """Return top normalized events that mention the company."""
     company_lower = watchlist_company.lower()
     related = [
-        e for e in state.normalized_events
-        if any(watchlist_company in c or company_lower in c.lower()
-               for c in e.companies)
-           or company_lower in e.canonical_title.lower()
+        e
+        for e in state.normalized_events
+        if any(watchlist_company in c or company_lower in c.lower() for c in e.companies)
+        or company_lower in e.canonical_title.lower()
     ]
     related.sort(key=lambda e: e.importance_score, reverse=True)
     return [
@@ -101,6 +96,7 @@ def _find_related_events(watchlist_company: str, state: TechDailyState, top_n: i
 # ---------------------------------------------------------------------------
 # Payload construction
 # ---------------------------------------------------------------------------
+
 
 def _build_macro_context(state: TechDailyState) -> dict:
     """Build a compact macro context dict from the pipeline's macro analyses."""
@@ -125,8 +121,15 @@ def _build_macro_context(state: TechDailyState) -> dict:
         }
         for k, v in state.topic_summaries.items()
         if v.report_worthy
-           and k in ("ai_models", "ai_infrastructure", "semiconductors",
-                     "embodied_ai_robotics", "big_tech_strategy", "startups_unicorns")
+        and k
+        in (
+            "ai_models",
+            "ai_infrastructure",
+            "semiconductors",
+            "embodied_ai_robotics",
+            "big_tech_strategy",
+            "startups_unicorns",
+        )
     }
 
     return {
@@ -148,12 +151,14 @@ def _build_ticker_payload(
     # Company events (structured)
     pub_info = []
     if company_analysis is not None:
-        pub_info.append({
-            "significance": company_analysis.significance,
-            "summary": company_analysis.summary,
-            "confidence": company_analysis.confidence,
-            "analysis_by_category": company_analysis.analysis_by_category,
-        })
+        pub_info.append(
+            {
+                "significance": company_analysis.significance,
+                "summary": company_analysis.summary,
+                "confidence": company_analysis.confidence,
+                "analysis_by_category": company_analysis.analysis_by_category,
+            }
+        )
 
     # Phase 5 market data slices
     per_ticker_data = (market_data or {}).get("per_ticker", {})
@@ -187,8 +192,9 @@ def _build_ticker_payload(
 # Report snippet builder
 # ---------------------------------------------------------------------------
 
+
 def _build_report_snippet(raw: dict) -> str:
-    """Convert the Claude JSON response into a formatted markdown snippet."""
+    """Convert the validated JSON response into a formatted markdown snippet."""
     ticker = raw.get("ticker", "?")
     company = raw.get("company", "")
     conclusion_zh = raw.get("conclusion_zh") or raw.get("conclusion", "")
@@ -242,65 +248,49 @@ def _build_report_snippet(raw: dict) -> str:
 # Per-ticker analysis call
 # ---------------------------------------------------------------------------
 
+
 def _analyze_one_ticker(
-    prompt_system: str,
     ticker_cfg: dict,
     payload: dict,
     has_price_data: bool,
+    prompt_runner: PromptRunner,
 ) -> MarketSignalAnalysis | None:
-    """Call MarketSignalAgent for a single ticker. Returns None on failure."""
+    """Call MarketSignalAgent for a single ticker."""
     ticker = ticker_cfg["ticker"]
-    model = DEFAULT_MODEL  # caller can override via config if needed
 
-    try:
-        raw = call_claude_json(
-            system=prompt_system,
-            user=json.dumps(payload, ensure_ascii=False),
-            max_tokens=4096,
-            cache_system=True,
-        )
-        if not isinstance(raw, dict):
-            print(f"  [MarketSignal] Unexpected response type for {ticker}: {type(raw)}")
-            return None
+    result = prompt_runner.run_json(
+        prompt_path="market_signal.md",
+        payload=json.dumps(payload, ensure_ascii=False),
+        schema=MarketSignalAnalysisResponse,
+        max_tokens=4096,
+        cache_system=True,
+    )
+    raw = result.model_dump()
+    snippet = _build_report_snippet(raw)
 
-        snippet = _build_report_snippet(raw)
-
-        return MarketSignalAnalysis(
-            ticker=raw.get("ticker", ticker),
-            company=raw.get("company", ticker_cfg["company"]),
-            date=raw.get("date", payload["date"]),
-            time_horizon=raw.get("time_horizon", ticker_cfg.get("horizon", "")),
-            event_context=raw.get("event_context") or [],
-            conclusion=raw.get("conclusion", ""),
-            conclusion_zh=raw.get("conclusion_zh", ""),
-            reasoning_zh=raw.get("reasoning_zh", ""),
-            base_case=raw.get("base_case", ""),
-            bull_case=raw.get("bull_case", ""),
-            bear_case=raw.get("bear_case", ""),
-            buy_observation_point=raw.get("buy_observation_point", ""),
-            sell_reduce_observation_point=raw.get("sell_reduce_observation_point", ""),
-            invalidation_condition=raw.get("invalidation_condition", ""),
-            risk_level=raw.get("risk_level", "medium"),
-            confidence=raw.get("confidence", "medium"),
-            signals_to_monitor=raw.get("signals_to_monitor") or [],
-            source_events=raw.get("source_events") or [],
-            has_price_data=has_price_data,
-            report_snippet=snippet,
-        )
-    except Exception as e:
-        print(f"  [MarketSignal] {ticker} analysis failed: {e}")
-        return None
+    return schema_to_dataclass(
+        result,
+        MarketSignalAnalysis,
+        ticker=result.ticker or ticker,
+        company=result.company or ticker_cfg["company"],
+        date=result.date or payload["date"],
+        time_horizon=result.time_horizon or ticker_cfg.get("horizon", ""),
+        has_price_data=has_price_data,
+        report_snippet=snippet,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
+
 def analyze_market_signals(
     state: TechDailyState,
     market_data: dict | None,
     prior_signals: dict[str, dict],
     config: dict,
+    prompt_runner: PromptRunner | None = None,
 ) -> dict[str, MarketSignalAnalysis]:
     """Run MarketSignalAgent for triggered tickers.
 
@@ -309,7 +299,7 @@ def analyze_market_signals(
       2. Filter: which tickers have a company event today (if only_on_event_day)
       3. Sort by company analysis importance; cap at max_tickers_per_run
       4. Build payloads (events + macro context + optional price data)
-      5. Run per-ticker Claude calls in parallel (ThreadPoolExecutor)
+      5. Run per-ticker LLM calls in parallel (ThreadPoolExecutor)
       6. Return dict of ticker → MarketSignalAnalysis
     """
     ms_cfg = config.get("market_signal", {})
@@ -330,18 +320,16 @@ def analyze_market_signals(
     min_importance = wl_settings.get("min_importance_to_trigger", min_importance)
     max_tickers = wl_settings.get("max_tickers_per_run", max_tickers)
 
-    prompt_system = _load_prompt()
+    runner = prompt_runner or PromptRunner()
     macro_context = _build_macro_context(state)
 
     # -----------------------------------------------------------------------
     # Identify triggered tickers
     # -----------------------------------------------------------------------
-    triggered: list[tuple[dict, Any, float]] = []   # (ticker_cfg, company_analysis, importance)
+    triggered: list[tuple[dict, Any, float]] = []  # (ticker_cfg, company_analysis, importance)
 
     for ticker_cfg in all_tickers:
-        company_analysis = _find_company_analysis(
-            ticker_cfg["company"], state.company_analyses
-        )
+        company_analysis = _find_company_analysis(ticker_cfg["company"], state.company_analyses)
         if only_on_event_day:
             if company_analysis is None:
                 continue
@@ -364,8 +352,10 @@ def analyze_market_signals(
         return {}
 
     has_price_data = bool(market_data and market_data.get("per_ticker"))
-    print(f"  [MarketSignal] {len(triggered)} tickers triggered; "
-          f"price_data={'yes' if has_price_data else 'no (Phase 4 mode)'}")
+    print(
+        f"  [MarketSignal] {len(triggered)} tickers triggered; "
+        f"price_data={'yes' if has_price_data else 'no (Phase 4 mode)'}"
+    )
 
     # -----------------------------------------------------------------------
     # Build payloads
@@ -384,30 +374,24 @@ def analyze_market_signals(
             prior_signal=prior_signal,
         )
         # Only mark as having price data if this specific ticker's data was fetched
-        ticker_has_data = has_price_data and ticker_cfg["ticker"] in (
-            market_data or {}
-        ).get("per_ticker", {})
+        ticker_has_data = has_price_data and ticker_cfg["ticker"] in (market_data or {}).get("per_ticker", {})
         jobs.append((ticker_cfg, payload, ticker_has_data))
 
     # -----------------------------------------------------------------------
     # Run calls in parallel (each ticker is one independent API call)
     # -----------------------------------------------------------------------
     results: dict[str, MarketSignalAnalysis] = {}
-    workers = min(len(jobs), 3)   # cap parallelism to avoid rate-limit bursts
+    workers = min(len(jobs), 3)  # cap parallelism to avoid rate-limit bursts
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = {
-            executor.submit(_analyze_one_ticker, prompt_system, tc, pl, hpd): tc["ticker"]
-            for tc, pl, hpd in jobs
-        }
+        futures = {executor.submit(_analyze_one_ticker, tc, pl, hpd, runner): tc["ticker"] for tc, pl, hpd in jobs}
         for future in as_completed(futures):
             ticker = futures[future]
             try:
                 analysis = future.result()
                 if analysis is not None:
                     results[ticker] = analysis
-                    print(f"  [MarketSignal] {ticker}: risk={analysis.risk_level}, "
-                          f"confidence={analysis.confidence}")
+                    print(f"  [MarketSignal] {ticker}: risk={analysis.risk_level}, confidence={analysis.confidence}")
             except Exception as e:
                 print(f"  [MarketSignal] {ticker} future failed: {e}")
 

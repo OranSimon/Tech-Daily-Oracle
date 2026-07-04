@@ -1,0 +1,106 @@
+name: Collector Health Check
+
+"on":
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Telemetry window in days"
+        required: false
+        type: string
+        default: "7"
+      collector:
+        description: "Collector name to check; leave empty for all collectors"
+        required: false
+        type: string
+        default: ""
+      max_failed_rate:
+        description: "Maximum failed / total rate"
+        required: false
+        type: string
+        default: "0.25"
+      max_partial_rate:
+        description: "Maximum partial / total rate; leave empty to disable"
+        required: false
+        type: string
+        default: ""
+      max_consecutive_failures:
+        description: "Maximum allowed latest consecutive failures"
+        required: false
+        type: string
+        default: "1"
+      min_record_count:
+        description: "Minimum latest record count; leave empty to disable"
+        required: false
+        type: string
+        default: ""
+      max_avg_duration:
+        description: "Maximum average duration in seconds; leave empty to disable"
+        required: false
+        type: string
+        default: ""
+      require_recent_success:
+        description: "Require latest selected collector run to be success"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  collector-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Check telemetry artifact
+        run: |
+          if [ ! -f data/collector_runs.jsonl ]; then
+            echo "Missing telemetry artifact: data/collector_runs.jsonl"
+            echo "Run the daily workflow first, or commit/upload an existing telemetry artifact."
+            exit 1
+          fi
+
+      - name: Run collector health check
+        run: |
+          ARGS=(
+            --health-check
+            --days "${{ inputs.days }}"
+          )
+
+          if [ -n "${{ inputs.collector }}" ]; then
+            ARGS+=(--collector "${{ inputs.collector }}")
+          fi
+          if [ -n "${{ inputs.max_failed_rate }}" ]; then
+            ARGS+=(--max-failed-rate "${{ inputs.max_failed_rate }}")
+          fi
+          if [ -n "${{ inputs.max_partial_rate }}" ]; then
+            ARGS+=(--max-partial-rate "${{ inputs.max_partial_rate }}")
+          fi
+          if [ -n "${{ inputs.max_consecutive_failures }}" ]; then
+            ARGS+=(--max-consecutive-failures "${{ inputs.max_consecutive_failures }}")
+          fi
+          if [ -n "${{ inputs.min_record_count }}" ]; then
+            ARGS+=(--min-record-count "${{ inputs.min_record_count }}")
+          fi
+          if [ -n "${{ inputs.max_avg_duration }}" ]; then
+            ARGS+=(--max-avg-duration "${{ inputs.max_avg_duration }}")
+          fi
+          if [ "${{ inputs.require_recent_success }}" = "true" ]; then
+            ARGS+=(--require-recent-success)
+          fi
+
+          python scripts/diagnose_collectors.py "${ARGS[@]}"

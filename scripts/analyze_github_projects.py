@@ -6,13 +6,14 @@ import asyncio
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 import yaml
-
-from claude_client import call_claude_json
+from analyzer_helpers import schema_to_dataclass
+from llm_schemas import GitHubProjectAnalysisResponse
+from prompt_runner import PromptRunner
 from state import NormalizedEvent, ProjectAnalysis
 
 MAX_WORKERS = 5
@@ -25,26 +26,22 @@ def _load_config() -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "github_project_analysis.md")) as f:
-        return f.read()
-
-
 def _days_ago(dt_str: str) -> int:
     if not dt_str:
         return 9999
     try:
         dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        delta = datetime.now(timezone.utc) - dt
+            dt = dt.replace(tzinfo=UTC)
+        delta = datetime.now(UTC) - dt
         return delta.days
-    except Exception:
+    except (TypeError, ValueError):
         return 9999
 
 
-async def _fetch_repo_details(client: httpx.AsyncClient, owner: str, repo: str,
-                               github_token: str | None) -> dict[str, Any]:
+async def _fetch_repo_details(
+    client: httpx.AsyncClient, owner: str, repo: str, github_token: str | None
+) -> dict[str, Any]:
     headers = {"Accept": "application/vnd.github+json"}
     if github_token:
         headers["Authorization"] = f"Bearer {github_token}"
@@ -56,23 +53,84 @@ async def _fetch_repo_details(client: httpx.AsyncClient, owner: str, repo: str,
         )
         if resp.status_code == 200:
             return resp.json()
-    except Exception:
-        pass
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"  [GitHub] Repo detail fetch failed for {owner}/{repo}: {exc}")
     return {}
+
+
+def _analyze_one_repo(
+    item: dict[str, Any],
+    prompt_runner: PromptRunner,
+    repo_count: int,
+    top_n: int,
+) -> tuple[float, str, ProjectAnalysis] | None:
+    meta = item["meta"]
+    details = item["details"]
+    owner = meta.get("owner", "")
+    repo_name = meta.get("repo", meta.get("name", ""))
+    full_name = f"{owner}/{repo_name}" if owner else repo_name
+
+    stars = details.get("stargazers_count") or meta.get("stars", 0)
+    forks = details.get("forks_count") or meta.get("forks", 0)
+    language = details.get("language") or meta.get("language", "")
+    pushed_at = details.get("pushed_at") or meta.get("pushed_at", "")
+    created_at = details.get("created_at") or meta.get("created_at", "")
+    open_issues = details.get("open_issues_count") or meta.get("open_issues", 0)
+    license_info = (details.get("license") or {}).get("spdx_id") or meta.get("license", "")
+    description = details.get("description") or item.get("description", "")
+    topics = details.get("topics") or meta.get("topics", [])
+
+    payload = {
+        "repo": {
+            "full_name": full_name,
+            "name": repo_name,
+            "owner": owner,
+            "description": description,
+            "stars": stars,
+            "forks": forks,
+            "language": language,
+            "created_at": created_at,
+            "pushed_at": pushed_at,
+            "open_issues": open_issues,
+            "license": license_info,
+            "topics": topics,
+        },
+        "readme_excerpt": description[:500],
+        # subscribers_count = people watching for notifications (genuine engagement).
+        # watchers_count is a legacy alias for stargazers_count — do not use.
+        # True contributor count requires a separate /contributors API call; skipped here.
+        "watchers_count": details.get("subscribers_count", 0),
+        "context": f"Analyzing {repo_count} repos, selecting top {top_n}",
+    }
+
+    result = prompt_runner.run_json(
+        prompt_path="github_project_analysis.md",
+        payload=json.dumps(payload, ensure_ascii=False),
+        schema=GitHubProjectAnalysisResponse,
+        max_tokens=4096,
+    )
+
+    if not result.report_worthy:
+        print(f"  [GitHub] Filtered: {full_name} — {result.filter_out_reason or ''}")
+        return None
+
+    analysis = schema_to_dataclass(result, ProjectAnalysis)
+    total_score = result.scores.get("total", 0)
+    print(f"  [GitHub] {full_name}: score={total_score} verdict={analysis.verdict}")
+    return (total_score, full_name, analysis)
 
 
 def analyze_github_projects(
     events: list[NormalizedEvent],
+    prompt_runner: PromptRunner | None = None,
+    max_workers: int = MAX_WORKERS,
 ) -> dict[str, ProjectAnalysis]:
     cfg = _load_config()
-    prompt_system = _load_prompt()
+    runner = prompt_runner or PromptRunner()
     github_token = os.environ.get("GITHUB_TOKEN")
     top_n = cfg.get("fetch", {}).get("top_n_in_report", 3)
 
-    github_events = [
-        e for e in events
-        if e.source_type == "github" or e.event_type == "github_trending"
-    ]
+    github_events = [e for e in events if e.source_type == "github" or e.event_type == "github_trending"]
 
     if not github_events:
         return {}
@@ -91,108 +149,38 @@ def analyze_github_projects(
                 details = {}
                 if owner and repo_name:
                     details = await _fetch_repo_details(client, owner, repo_name, github_token)
-                enriched.append({
-                    "event_id": e.event_id,
-                    "url": e.primary_source_url,
-                    "description": e.summary,
-                    "meta": meta,
-                    "details": details,
-                })
+                enriched.append(
+                    {
+                        "event_id": e.event_id,
+                        "url": e.primary_source_url,
+                        "description": e.summary,
+                        "meta": meta,
+                        "details": details,
+                    }
+                )
         return enriched
 
     enriched_data = asyncio.run(enrich_repos(github_events))
 
-    def _analyze_one_repo(item: dict[str, Any]) -> tuple[float, str, ProjectAnalysis] | None:
-        meta = item["meta"]
-        details = item["details"]
-        owner = meta.get("owner", "")
-        repo_name = meta.get("repo", meta.get("name", ""))
-        full_name = f"{owner}/{repo_name}" if owner else repo_name
-
-        stars = details.get("stargazers_count") or meta.get("stars", 0)
-        forks = details.get("forks_count") or meta.get("forks", 0)
-        language = details.get("language") or meta.get("language", "")
-        pushed_at = details.get("pushed_at") or meta.get("pushed_at", "")
-        created_at = details.get("created_at") or meta.get("created_at", "")
-        open_issues = details.get("open_issues_count") or meta.get("open_issues", 0)
-        license_info = (details.get("license") or {}).get("spdx_id") or meta.get("license", "")
-        description = details.get("description") or item.get("description", "")
-        topics = details.get("topics") or meta.get("topics", [])
-
-        try:
-            user_msg = json.dumps({
-                "repo": {
-                    "full_name": full_name,
-                    "name": repo_name,
-                    "owner": owner,
-                    "description": description,
-                    "stars": stars,
-                    "forks": forks,
-                    "language": language,
-                    "created_at": created_at,
-                    "pushed_at": pushed_at,
-                    "open_issues": open_issues,
-                    "license": license_info,
-                    "topics": topics,
-                },
-                "readme_excerpt": description[:500],
-                # subscribers_count = people watching for notifications (genuine engagement).
-                # watchers_count is a legacy alias for stargazers_count — do not use.
-                # True contributor count requires a separate /contributors API call; skipped here.
-                "watchers_count": details.get("subscribers_count", 0),
-                "context": f"Analyzing {len(enriched_data)} repos, selecting top {top_n}",
-            }, ensure_ascii=False)
-
-            result = call_claude_json(
-                system=prompt_system,
-                user=user_msg,
-                max_tokens=4096,
-            )
-
-            if not result.get("report_worthy", True):
-                print(f"  [GitHub] Filtered: {full_name} — {result.get('filter_out_reason', '')}")
-                return None
-
-            analysis = ProjectAnalysis(
-                repo=result.get("repo", full_name),
-                url=result.get("url", item["url"]),
-                tagline=result.get("tagline", description[:100]),
-                stars_total=result.get("stars_total", stars),
-                stars_today=result.get("stars_today", 0),
-                stars_weekly=result.get("stars_weekly", 0),
-                language=result.get("language", language),
-                created_days_ago=result.get("created_days_ago", _days_ago(created_at)),
-                last_commit_days_ago=result.get("last_commit_days_ago", _days_ago(pushed_at)),
-                contributors=result.get("contributors", 0),
-                license=result.get("license", license_info),
-                report_worthy=result.get("report_worthy", True),
-                filter_out_reason=result.get("filter_out_reason"),
-                scores=result.get("scores", {}),
-                what_it_does=result.get("what_it_does", ""),
-                why_it_matters=result.get("why_it_matters", ""),
-                risk_label=result.get("risk_label", "promising"),
-                verdict=result.get("verdict", "Track"),
-                topic_tags=result.get("topic_tags", []),
-                hype_risk=result.get("hype_risk", "medium"),
-                signals_to_monitor=result.get("signals_to_monitor", []),
-            )
-            total_score = result.get("scores", {}).get("total", 0)
-            print(f"  [GitHub] {full_name}: score={total_score} verdict={analysis.verdict}")
-            return (total_score, full_name, analysis)
-
-        except Exception as e:
-            print(f"  [GitHub] Analysis failed for {full_name}: {e}")
-            return None
-
     analyses: dict[str, ProjectAnalysis] = {}
     scored_repos: list[tuple[float, str, ProjectAnalysis]] = []
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = [executor.submit(_analyze_one_repo, item) for item in enriched_data]
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(_analyze_one_repo, item, runner, len(enriched_data), top_n): item for item in enriched_data
+        }
         for future in as_completed(futures):
-            result = future.result()
-            if result is not None:
-                scored_repos.append(result)
+            item = futures[future]
+            meta = item["meta"]
+            owner = meta.get("owner", "")
+            repo_name = meta.get("repo", meta.get("name", ""))
+            full_name = f"{owner}/{repo_name}" if owner else repo_name
+            try:
+                result = future.result()
+                if result is not None:
+                    scored_repos.append(result)
+            except Exception as e:
+                print(f"  [GitHub] Analysis failed for {full_name}: {e}")
 
     # Sort by score and take top N
     scored_repos.sort(key=lambda x: x[0], reverse=True)

@@ -3,27 +3,16 @@
 from __future__ import annotations
 
 import json
-import os
-from datetime import date
 from typing import Any
 
-from claude_client import call_claude_json
+from llm_schemas import NewPredictionsResponse, PredictionUpdatesResponse
+from prompt_runner import PromptRunner
 from state import (
-    NormalizedEvent, TopicSummary, CompanyAnalysis,
-    Prediction, PredictionUpdate, TechDailyState
+    NormalizedEvent,
+    Prediction,
+    PredictionUpdate,
+    TechDailyState,
 )
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-def _load_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "prediction_update.md")) as f:
-        return f.read()
-
-
-def _load_new_prediction_prompt() -> str:
-    with open(os.path.join(ROOT, "prompts", "new_prediction.md")) as f:
-        return f.read()
 
 
 def _determine_signal_level(events: list[NormalizedEvent]) -> str:
@@ -47,8 +36,7 @@ def _build_today_summary(state: TechDailyState) -> dict[str, Any]:
                 "topics": e.topics,
                 "importance_score": e.importance_score,
             }
-            for e in sorted(state.normalized_events,
-                            key=lambda x: x.importance_score, reverse=True)[:15]
+            for e in sorted(state.normalized_events, key=lambda x: x.importance_score, reverse=True)[:15]
         ],
         "topic_summaries": {
             k: {
@@ -70,11 +58,13 @@ def _build_today_summary(state: TechDailyState) -> dict[str, Any]:
     }
 
 
-def run_prediction_updates(state: TechDailyState) -> list[PredictionUpdate]:
+def _run_prediction_update_batch(
+    state: TechDailyState,
+    prompt_runner: PromptRunner,
+) -> list[PredictionUpdate]:
     if not state.open_predictions:
         return []
 
-    prompt_system = _load_prompt()
     today_summary = _build_today_summary(state)
 
     pred_payload = [
@@ -91,108 +81,129 @@ def run_prediction_updates(state: TechDailyState) -> list[PredictionUpdate]:
         for p in state.open_predictions
     ]
 
-    try:
-        user_msg = json.dumps({
+    user_msg = json.dumps(
+        {
             "open_predictions": pred_payload,
             "today_events": today_summary["top_events"],
             "topic_summaries": today_summary["topic_summaries"],
             "company_analyses": today_summary["company_analyses"],
-        }, ensure_ascii=False)
+        },
+        ensure_ascii=False,
+    )
 
-        # Returns an ARRAY of N updates (one per open prediction).
-        # Each update has ~6 fields + reasoning text → ~300-500 tokens.
-        # With 30 open predictions the output can exceed 12K tokens, so we
-        # allocate generously here. (Single-object analyzers stay at 4096.)
-        results = call_claude_json(
-            system=prompt_system,
-            user=user_msg,
-            max_tokens=16384,
+    # Returns an ARRAY of N updates (one per open prediction).
+    # Each update has ~6 fields + reasoning text → ~300-500 tokens.
+    # With 30 open predictions the output can exceed 12K tokens, so we
+    # allocate generously here. (Single-object analyzers stay at 4096.)
+    results = prompt_runner.run_json(
+        prompt_path="prediction_update.md",
+        payload=user_msg,
+        schema=PredictionUpdatesResponse,
+        max_tokens=16384,
+    )
+
+    updates = []
+    for r in results.root:
+        updates.append(
+            PredictionUpdate(
+                prediction_id=r.prediction_id,
+                update_date=state.run_date,
+                evidence_summary=r.evidence_summary,
+                impact=r.impact,
+                probability_before=r.probability_before,
+                probability_after=r.probability_after,
+                reasoning=r.reasoning,
+                source_event_ids=r.source_event_ids,
+                resolution=r.resolution,
+            )
         )
 
-        if not isinstance(results, list):
-            return []
+    print(f"  [Predictions] {len(updates)} prediction updates")
+    return updates
 
-        updates = []
-        for r in results:
-            updates.append(PredictionUpdate(
-                prediction_id=r.get("prediction_id", ""),
-                update_date=state.run_date,
-                evidence_summary=r.get("evidence_summary", ""),
-                impact=r.get("impact", "neutral"),
-                probability_before=r.get("probability_before", 0.5),
-                probability_after=r.get("probability_after", 0.5),
-                reasoning=r.get("reasoning", ""),
-                source_event_ids=r.get("source_event_ids", []),
-                resolution=r.get("resolution", {"resolved": False, "resolved_as": None,
-                                                 "resolution_reasoning": None}),
-            ))
 
-        print(f"  [Predictions] {len(updates)} prediction updates")
-        return updates
+def run_prediction_updates(
+    state: TechDailyState,
+    prompt_runner: PromptRunner | None = None,
+) -> list[PredictionUpdate]:
+    if not state.open_predictions:
+        return []
 
+    try:
+        return _run_prediction_update_batch(state, prompt_runner or PromptRunner())
     except Exception as e:
         print(f"  [Predictions] Update failed: {e}")
         return []
 
 
-def generate_new_predictions(state: TechDailyState) -> list[Prediction]:
-    prompt_system = _load_new_prediction_prompt()
+def _generate_new_prediction_batch(
+    state: TechDailyState,
+    prompt_runner: PromptRunner,
+) -> list[Prediction]:
     today_summary = _build_today_summary(state)
     signal_level = _determine_signal_level(state.normalized_events)
     state.signal_level = signal_level
 
     existing_ids = {p.prediction_id for p in state.open_predictions}
 
-    try:
-        user_msg = json.dumps({
+    user_msg = json.dumps(
+        {
             "run_date": state.run_date,
             "today_summary": today_summary,
             "open_predictions": [
-                {"prediction_id": p.prediction_id, "prediction": p.prediction}
-                for p in state.open_predictions
+                {"prediction_id": p.prediction_id, "prediction": p.prediction} for p in state.open_predictions
             ],
             "recently_resolved": [],
             "signal_level": signal_level,
-        }, ensure_ascii=False)
+        },
+        ensure_ascii=False,
+    )
 
-        # Returns an ARRAY of 1-6 new predictions (depending on signal_level).
-        # Each prediction has 11 fields including long evidence/criteria text
-        # → ~700-900 tokens per prediction. 6 predictions × 900 = 5400 tokens
-        # plus JSON envelope → 4096 was too tight (failed in production logs).
-        results = call_claude_json(
-            system=prompt_system,
-            user=user_msg,
-            max_tokens=8192,
+    # Returns an ARRAY of 1-6 new predictions (depending on signal_level).
+    # Each prediction has 11 fields including long evidence/criteria text
+    # → ~700-900 tokens per prediction. 6 predictions × 900 = 5400 tokens
+    # plus JSON envelope → 4096 was too tight (failed in production logs).
+    results = prompt_runner.run_json(
+        prompt_path="new_prediction.md",
+        payload=user_msg,
+        schema=NewPredictionsResponse,
+        max_tokens=8192,
+    )
+
+    new_preds = []
+    for r in results.root:
+        pid = r.prediction_id
+        if pid in existing_ids:
+            continue
+        new_preds.append(
+            Prediction(
+                prediction_id=pid,
+                created_date=r.created_date,
+                prediction=r.prediction,
+                topic_tags=r.topic_tags,
+                companies=r.companies,
+                time_horizon=r.time_horizon,
+                horizon_date=r.horizon_date,
+                probability=r.probability,
+                evidence=r.evidence,
+                resolution_criteria=r.resolution_criteria,
+                falsification_condition=r.falsification_condition,
+                signals_to_monitor=r.signals_to_monitor,
+                status="open",
+                confidence=r.confidence,
+            )
         )
 
-        if not isinstance(results, list):
-            return []
+    print(f"  [Predictions] Generated {len(new_preds)} new predictions (signal_level={signal_level})")
+    return new_preds
 
-        new_preds = []
-        for r in results:
-            pid = r.get("prediction_id", "")
-            if pid in existing_ids:
-                continue
-            new_preds.append(Prediction(
-                prediction_id=pid,
-                created_date=r.get("created_date", state.run_date),
-                prediction=r.get("prediction", ""),
-                topic_tags=r.get("topic_tags", []),
-                companies=r.get("companies", []),
-                time_horizon=r.get("time_horizon", ""),
-                horizon_date=r.get("horizon_date", ""),
-                probability=r.get("probability", 0.5),
-                evidence=r.get("evidence", ""),
-                resolution_criteria=r.get("resolution_criteria", ""),
-                falsification_condition=r.get("falsification_condition", ""),
-                signals_to_monitor=r.get("signals_to_monitor", []),
-                status="open",
-                confidence=r.get("confidence", "medium"),
-            ))
 
-        print(f"  [Predictions] Generated {len(new_preds)} new predictions "
-              f"(signal_level={signal_level})")
-        return new_preds
+def generate_new_predictions(
+    state: TechDailyState,
+    prompt_runner: PromptRunner | None = None,
+) -> list[Prediction]:
+    try:
+        return _generate_new_prediction_batch(state, prompt_runner or PromptRunner())
 
     except Exception as e:
         print(f"  [Predictions] Generation failed: {e}")
