@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import update_predictions
+from pipeline_state import PredictionInputState
 from prompt_runner import PromptRunner, PromptRunnerError
 from state import NormalizedEvent, Prediction, PredictionUpdate, TechDailyState
 from test_prompt_runner import FakeLLMClient
@@ -123,6 +124,42 @@ def test_run_prediction_updates_accepts_fake_prompt_runner_plain_json(tmp_path: 
     assert updates[0].probability_after == 0.68
 
 
+def test_run_prediction_updates_from_input_matches_legacy_path(tmp_path: Path) -> None:
+    legacy_runner = _prompt_runner(tmp_path, VALID_UPDATE_JSON, "prediction_update.md")
+    typed_runner = _prompt_runner(tmp_path, VALID_UPDATE_JSON, "prediction_update.md")
+    state = _state()
+    input_state = PredictionInputState.from_tech_daily_state(state)
+
+    legacy_updates = update_predictions.run_prediction_updates(state, prompt_runner=legacy_runner)
+    typed_updates = update_predictions.run_prediction_updates_from_input(input_state, prompt_runner=typed_runner)
+
+    assert typed_updates == legacy_updates
+
+
+def test_prediction_update_result_captures_llm_failure_without_changing_legacy_return() -> None:
+    input_state = PredictionInputState.from_tech_daily_state(_state())
+
+    class FailingRunner:
+        def run_json(self, **kwargs: object) -> object:
+            raise PromptRunnerError(kind="json_parse_error", message="bad json", raw_response="not-json")
+
+    result = update_predictions.run_prediction_updates_result_from_input(
+        input_state,
+        prompt_runner=FailingRunner(),
+    )
+    legacy = update_predictions.run_prediction_updates_from_input(
+        input_state,
+        prompt_runner=FailingRunner(),
+    )
+
+    assert result.value == []
+    assert result.success is False
+    assert result.error_kind == "json_parse_error"
+    assert result.error_message is not None
+    assert "bad json" in result.error_message
+    assert legacy == []
+
+
 def test_prediction_updates_accept_fenced_json(tmp_path: Path) -> None:
     runner = _prompt_runner(tmp_path, f"```json\n{VALID_UPDATE_JSON}\n```", "prediction_update.md")
 
@@ -163,6 +200,59 @@ def test_generate_new_predictions_accepts_fake_prompt_runner_plain_json(tmp_path
     assert predictions[0].prediction_id == "P20260702-1"
     assert predictions[0].status == "open"
     assert state.signal_level == "low"
+
+
+def test_generate_new_predictions_from_input_matches_legacy_path_and_signal_level(tmp_path: Path) -> None:
+    legacy_runner = _prompt_runner(tmp_path, VALID_NEW_PREDICTION_JSON, "new_prediction.md")
+    typed_runner = _prompt_runner(tmp_path, VALID_NEW_PREDICTION_JSON, "new_prediction.md")
+    state = _state()
+    input_state = PredictionInputState.from_tech_daily_state(state)
+
+    legacy_predictions = update_predictions.generate_new_predictions(state, prompt_runner=legacy_runner)
+    typed_predictions, signal_level = update_predictions.generate_new_predictions_from_input(
+        input_state,
+        prompt_runner=typed_runner,
+    )
+
+    assert typed_predictions == legacy_predictions
+    assert signal_level == state.signal_level == "low"
+
+
+def test_generate_new_predictions_result_captures_llm_failure_without_changing_legacy_return() -> None:
+    input_state = PredictionInputState.from_tech_daily_state(_state())
+
+    class FailingRunner:
+        def run_json(self, **kwargs: object) -> object:
+            raise PromptRunnerError(kind="schema_validation_error", message="missing fields", raw_response="[]")
+
+    result = update_predictions.generate_new_predictions_result_from_input(
+        input_state,
+        prompt_runner=FailingRunner(),
+    )
+    legacy = update_predictions.generate_new_predictions_from_input(
+        input_state,
+        prompt_runner=FailingRunner(),
+    )
+
+    assert result.value == ([], "low")
+    assert result.success is False
+    assert result.error_kind == "schema_validation_error"
+    assert result.error_message is not None
+    assert "missing fields" in result.error_message
+    assert legacy == ([], "low")
+
+
+def test_generate_new_predictions_from_input_preserves_duplicate_id_skip(tmp_path: Path) -> None:
+    duplicate_json = VALID_NEW_PREDICTION_JSON.replace("P20260702-1", "P20260701-1")
+    runner = _prompt_runner(tmp_path, duplicate_json, "new_prediction.md")
+
+    predictions, signal_level = update_predictions.generate_new_predictions_from_input(
+        PredictionInputState.from_tech_daily_state(_state()),
+        prompt_runner=runner,
+    )
+
+    assert predictions == []
+    assert signal_level == "low"
 
 
 def test_generate_new_predictions_accepts_fenced_json(tmp_path: Path) -> None:

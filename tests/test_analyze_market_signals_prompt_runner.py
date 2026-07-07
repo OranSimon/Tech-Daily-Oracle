@@ -7,8 +7,9 @@ from typing import Any
 
 import analyze_market_signals
 import pytest
+from pipeline_state import MarketSignalInputState
 from prompt_runner import PromptRunner, PromptRunnerError
-from state import CompanyAnalysis, MarketSignalAnalysis, NormalizedEvent
+from state import CompanyAnalysis, MarketSignalAnalysis, NormalizedEvent, TechDailyState
 from test_prompt_runner import FakeLLMClient
 
 
@@ -62,6 +63,19 @@ def _state() -> Any:
         macro_impact_analyses={},
         topic_summaries={},
     )
+
+
+def _tech_daily_state() -> TechDailyState:
+    state = TechDailyState(
+        run_id="run-2026-07-02",
+        run_date="2026-07-02",
+        time_window="last_24h",
+    )
+    state.normalized_events = [_event()]
+    state.company_analyses = {"Nvidia": _company_analysis()}
+    state.macro_impact_analyses = {}
+    state.topic_summaries = {}
+    return state
 
 
 def _ticker_cfg() -> dict:
@@ -158,6 +172,45 @@ def test_analyze_market_signals_accepts_fake_prompt_runner_plain_json(
     assert analyses["NVDA"].confidence == "high"
     assert analyses["NVDA"].has_price_data is False
     assert "Fixture 中文结论" in analyses["NVDA"].report_snippet
+
+
+def test_analyze_market_signals_from_input_matches_legacy_path_with_no_market_data(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        analyze_market_signals,
+        "_load_watchlist",
+        lambda config: {
+            "tickers": [_ticker_cfg()],
+            "settings": {
+                "only_on_event_day": True,
+                "min_importance_to_trigger": 0.55,
+                "max_tickers_per_run": 1,
+            },
+        },
+    )
+    legacy_runner = _prompt_runner(tmp_path, VALID_MARKET_SIGNAL_JSON)
+    typed_runner = _prompt_runner(tmp_path, VALID_MARKET_SIGNAL_JSON)
+    state = _tech_daily_state()
+
+    legacy = analyze_market_signals.analyze_market_signals(
+        state,
+        market_data=None,
+        prior_signals={},
+        config={"market_signal": {"enabled": True}},
+        prompt_runner=legacy_runner,
+    )
+    typed = analyze_market_signals.analyze_market_signals_from_input(
+        MarketSignalInputState.from_tech_daily_state(state),
+        market_data=None,
+        prior_signals={},
+        config={"market_signal": {"enabled": True}},
+        prompt_runner=typed_runner,
+    )
+
+    assert typed == legacy
+    assert typed["NVDA"].has_price_data is False
 
 
 def test_analyze_one_ticker_accepts_fenced_json(tmp_path: Path) -> None:

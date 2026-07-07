@@ -1,12 +1,20 @@
 # Pipeline State
 
 `TechDailyState` remains the public compatibility shell for the daily pipeline.
-Phase 5 adds typed state slices in `scripts/pipeline_state.py` so orchestration
+Phase 5 adds typed state slices in `tech_daily.pipeline.state` so orchestration
 can gradually move away from broad blackboard mutation without changing report
 formats, storage formats, prediction schemas, CLI behavior, or pipeline order.
 
+Typed pipeline state slices are package-owned in `tech_daily.pipeline.state`.
+`TechDailyState` remains the public compatibility shell.
+
 Typed state objects are compatibility shadows. They group related fields and
 apply values back to `TechDailyState`; they do not own business logic.
+
+Nested dictionary fields remain public for compatibility, but new code should
+construct them through package-owned helper contracts such as
+`PredictionResolution` and `SignalToMonitor` when writing new persistence or
+prompt-boundary code.
 
 ## Typed State Slices
 
@@ -112,14 +120,23 @@ report generation:
 
 | Boundary | Preferred input | Compatibility adapter | Direct `TechDailyState` retained |
 | --- | --- | --- | --- |
-| Market signals | `MarketSignalInputState` | `analyze_market_signals_input_action(...)` builds a temporary compatibility state for `analyze_market_signals(...)` | `analyze_market_signals.py` still consumes `TechDailyState` internally |
-| Prediction updates | `PredictionInputState` | `update_predictions_input_action(...)` builds a temporary compatibility state for `run_prediction_updates(...)` | `update_predictions.py` still owns prediction lifecycle internals |
-| New predictions | `PredictionInputState` | `generate_new_predictions_input_action(...)` builds a temporary compatibility state for `generate_new_predictions(...)` | signal-level mutation remains inside prediction internals |
-| Daily report | `ReportInputState` | `generate_daily_report_input_action(...)` builds a temporary compatibility state for `generate_daily_report(...)` | `generate_report.py` still reads the report payload from `TechDailyState` |
+| Market signals | `MarketSignalInputState` | `analyze_market_signals_input_action(...)` calls `analyze_market_signals_from_input(...)` directly | legacy `analyze_market_signals(state, ...)` remains as a compatibility adapter |
+| Prediction updates | `PredictionInputState` | `update_predictions_input_action(...)` calls `run_prediction_updates_from_input(...)` directly | legacy `run_prediction_updates(state)` remains as a compatibility adapter |
+| New predictions | `PredictionInputState` | `generate_new_predictions_input_action(...)` calls `generate_new_predictions_from_input(...)` directly | legacy `generate_new_predictions(state)` remains as a compatibility adapter and applies `signal_level` back to the shell |
+| Daily report | `ReportInputState` | `generate_daily_report_input_action(...)` calls `generate_daily_report_from_input(...)` directly | legacy `generate_daily_report(state)` remains as a compatibility adapter |
 
-The temporary compatibility state is local to the action wrapper. It preserves
-current prompt payloads and downstream behavior while reducing direct
-blackboard access in `scripts/daily_pipeline.py`.
+Temporary compatibility-state reconstruction remains for older public
+`TechDailyState` APIs, but the daily action path now uses typed prediction,
+market-signal, and report inputs directly. Daily report generation builds its
+prompt payload directly from `ReportInputState`, while the legacy
+`generate_daily_report(state)` path still works for older callers.
+
+## Prediction Operation Diagnostics
+
+Prediction update/generation compatibility functions still return the legacy
+values used by the daily pipeline. New code may use the `*_result_from_input`
+variants to inspect `success`, `error_kind`, and `error_message` without
+changing fallback behavior.
 
 ## Direct Access Map
 
@@ -130,9 +147,9 @@ Current direct `TechDailyState` access is intentionally grouped as follows:
 | Compatibility construction and apply helpers | `scripts/pipeline_state.py` | Central mapping layer between typed slices and the public shell |
 | Daily runner summary | `scripts/run_daily.py` | User-facing final counts and return value |
 | Legacy action wrappers | `scripts/daily_step_actions.py` | Backward-compatible public functions used by tests and older callers |
-| Prediction internals | `scripts/update_predictions.py` | Prediction lifecycle logic and prompt payloads are intentionally unchanged |
+| Prediction internals | `scripts/update_predictions.py` | Typed input entrypoints exist; legacy state-based functions remain for compatibility |
 | Report internals | `scripts/generate_report.py` | Markdown prompt payload construction is intentionally unchanged |
-| Market signal internals | `scripts/analyze_market_signals.py` | Market payload construction still expects the compatibility shell |
+| Market signal internals | `scripts/analyze_market_signals.py` | Typed input entrypoint exists; legacy state-based function remains for compatibility |
 | Storage persistence | `scripts/storage.py` | Existing persisted row shapes are derived from current dataclasses/state |
 
 ## Candidates For Phase 6

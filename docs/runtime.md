@@ -1,8 +1,10 @@
 # Runtime Context
 
-`scripts/run_context.py` provides a small runtime context layer for pipeline
-runs. It is intentionally narrow: it centralizes run metadata, key repository
-paths, and lightweight config access without replacing `TechDailyState`.
+`src/tech_daily/runtime/run_context.py` provides a small runtime context layer
+for pipeline runs. `scripts/run_context.py` is a compatibility wrapper for
+legacy script imports. The context layer is intentionally narrow: it centralizes
+run metadata, key repository paths, and lightweight config access without
+replacing `TechDailyState`.
 
 ## RunContext
 
@@ -43,7 +45,9 @@ runner orchestration or adding future pipeline steps.
 
 ## Structured Logging
 
-`scripts/run_logging.py` defines `RunLogger` and `RunLogEvent`. Log events carry:
+`src/tech_daily/runtime/run_logging.py` defines `RunLogger` and `RunLogEvent`.
+`scripts/run_logging.py` is a compatibility wrapper for legacy script imports.
+Log events carry:
 
 - `run_id`
 - `run_date`
@@ -103,9 +107,10 @@ prediction, report, and market-signal implementations.
 
 ## PipelineStep
 
-`scripts/pipeline_step.py` defines a tiny `PipelineStep` wrapper for timing,
-structured logging, and fatal/non-fatal error policy around daily runner steps.
-It returns a `PipelineStepResult` with:
+`src/tech_daily/pipeline/step.py` defines a tiny `PipelineStep` wrapper for
+timing, structured logging, and fatal/non-fatal error policy around daily runner
+steps. `scripts/pipeline_step.py` is a compatibility wrapper for legacy script
+imports. It returns a `PipelineStepResult` with:
 
 - `name`
 - `success`

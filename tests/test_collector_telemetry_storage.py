@@ -77,6 +77,22 @@ def test_save_collector_telemetry_writes_jsonl_artifact(tmp_path: Path) -> None:
     ]
 
 
+def test_collector_telemetry_accepts_storage_context(tmp_path: Path) -> None:
+    context = storage.StorageContext.from_root(tmp_path)
+
+    storage.save_collector_telemetry(
+        run_date="2026-07-03",
+        results=[_result()],
+        run_id="run-123",
+        timestamp="2026-07-03T01:02:03+00:00",
+        storage_context=context,
+    )
+    rows = storage.load_collector_telemetry(storage_context=context)
+
+    assert context.collector_telemetry_path().exists()
+    assert [row["collector_name"] for row in rows] == ["rss"]
+
+
 def test_load_collector_telemetry_validates_expected_rows(tmp_path: Path) -> None:
     _point_storage_at(tmp_path)
     storage.save_collector_telemetry(

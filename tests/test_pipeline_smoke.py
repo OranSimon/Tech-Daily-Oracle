@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import daily_step_actions as actions
-import run_daily
 import storage
 from collectors.telemetry import CollectorRunResult, CollectorRunStatus
 from state import (
@@ -16,6 +15,8 @@ from state import (
     RawEvent,
     TopicSummary,
 )
+
+import tech_daily.cli.run_daily as run_daily
 
 
 def _point_storage_at(tmp_path: Path) -> None:
@@ -143,11 +144,15 @@ def test_daily_pipeline_smoke_with_fake_dependencies(monkeypatch, tmp_path: Path
     monkeypatch.setattr(actions, "analyze_github_projects", lambda events: {})
     monkeypatch.setattr(actions, "analyze_social_signals", lambda events: {})
     monkeypatch.setattr(actions, "analyze_macro_impact", lambda events, predictions: {})
-    monkeypatch.setattr(actions, "run_prediction_updates", lambda state: [])
-    monkeypatch.setattr(actions, "generate_new_predictions", lambda state: [prediction])
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: [])
     monkeypatch.setattr(
         actions,
-        "generate_daily_report",
+        "generate_new_predictions_from_input",
+        lambda input_state: ([prediction], input_state.prediction.signal_level),
+    )
+    monkeypatch.setattr(
+        actions,
+        "generate_daily_report_from_input",
         lambda state: "# Tech Daily Brief — 2026-07-02\n\n## 1. 今日一句话判断\n\nFixture.\n",
     )
 
@@ -238,9 +243,13 @@ def test_daily_collection_path_enables_telemetry_persistence(monkeypatch, tmp_pa
     monkeypatch.setattr(actions, "analyze_github_projects", lambda events: {})
     monkeypatch.setattr(actions, "analyze_social_signals", lambda events: {})
     monkeypatch.setattr(actions, "analyze_macro_impact", lambda events, predictions: {})
-    monkeypatch.setattr(actions, "run_prediction_updates", lambda state: [])
-    monkeypatch.setattr(actions, "generate_new_predictions", lambda state: [])
-    monkeypatch.setattr(actions, "generate_daily_report", lambda state: "# Tech Daily Brief — 2026-07-02\n")
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: [])
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: ([], input_state.prediction.signal_level),
+    )
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", lambda state: "# Tech Daily Brief — 2026-07-02\n")
 
     run_daily.run_daily("2026-07-02", force=True)
 
@@ -284,8 +293,8 @@ def test_daily_collection_failure_remains_non_fatal(monkeypatch, tmp_path: Path)
         captured["normalized_input"] = events
         return []
 
-    def fake_report(state):
-        captured["source_warnings"] = list(state.source_warnings)
+    def fake_report(input_state):
+        captured["source_warnings"] = list(input_state.diagnostics.source_warnings)
         return "# Tech Daily Brief — 2026-07-02\n"
 
     monkeypatch.setattr(actions, "collect_sources_with_telemetry", fail_collection, raising=False)
@@ -297,9 +306,13 @@ def test_daily_collection_failure_remains_non_fatal(monkeypatch, tmp_path: Path)
     monkeypatch.setattr(actions, "analyze_github_projects", lambda events: {})
     monkeypatch.setattr(actions, "analyze_social_signals", lambda events: {})
     monkeypatch.setattr(actions, "analyze_macro_impact", lambda events, predictions: {})
-    monkeypatch.setattr(actions, "run_prediction_updates", lambda state: [])
-    monkeypatch.setattr(actions, "generate_new_predictions", lambda state: [])
-    monkeypatch.setattr(actions, "generate_daily_report", fake_report)
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: [])
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: ([], input_state.prediction.signal_level),
+    )
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", fake_report)
 
     report = run_daily.run_daily("2026-07-02", force=True)
 
@@ -377,9 +390,13 @@ def test_daily_trending_snapshot_failure_remains_non_fatal(monkeypatch, tmp_path
     monkeypatch.setattr(actions, "analyze_trending", unexpected_trending_analysis)
     monkeypatch.setattr(actions, "analyze_social_signals", lambda events: {})
     monkeypatch.setattr(actions, "analyze_macro_impact", lambda events, predictions: {})
-    monkeypatch.setattr(actions, "run_prediction_updates", lambda state: [])
-    monkeypatch.setattr(actions, "generate_new_predictions", lambda state: [])
-    monkeypatch.setattr(actions, "generate_daily_report", lambda state: "# Tech Daily Brief — 2026-07-02\n")
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: [])
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: ([], input_state.prediction.signal_level),
+    )
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", lambda state: "# Tech Daily Brief — 2026-07-02\n")
 
     report = run_daily.run_daily("2026-07-02", force=True)
     output = capsys.readouterr().out
@@ -460,9 +477,13 @@ def test_daily_trending_history_load_is_wrapped_without_changing_analysis(monkey
     monkeypatch.setattr(actions, "analyze_trending", fake_analyze_trending)
     monkeypatch.setattr(actions, "analyze_social_signals", lambda events: {})
     monkeypatch.setattr(actions, "analyze_macro_impact", lambda events, predictions: {})
-    monkeypatch.setattr(actions, "run_prediction_updates", lambda state: [])
-    monkeypatch.setattr(actions, "generate_new_predictions", lambda state: [])
-    monkeypatch.setattr(actions, "generate_daily_report", lambda state: "# Tech Daily Brief — 2026-07-02\n")
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: [])
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: ([], input_state.prediction.signal_level),
+    )
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", lambda state: "# Tech Daily Brief — 2026-07-02\n")
 
     run_daily.run_daily("2026-07-02", force=True)
     output = capsys.readouterr().out
@@ -519,7 +540,7 @@ def test_daily_market_data_collection_success_is_wrapped_without_changing_downst
         captured["tickers"] = tickers
         return market_data
 
-    def fake_analyze_market_signals(state, market_data, prior_signals, config):
+    def fake_analyze_market_signals_from_input(input_state, *, market_data, prior_signals, config):
         captured["market_data"] = market_data
         captured["prior_signals"] = prior_signals
         return {}
@@ -529,11 +550,7 @@ def test_daily_market_data_collection_success_is_wrapped_without_changing_downst
         "collect_market_data",
         types.SimpleNamespace(collect_market_data=fake_collect_market_data),
     )
-    monkeypatch.setitem(
-        sys.modules,
-        "analyze_market_signals",
-        types.SimpleNamespace(analyze_market_signals=fake_analyze_market_signals),
-    )
+    monkeypatch.setattr(actions, "analyze_market_signals_from_input", fake_analyze_market_signals_from_input)
     monkeypatch.setattr(
         actions,
         "collect_sources_with_telemetry",
@@ -558,9 +575,13 @@ def test_daily_market_data_collection_success_is_wrapped_without_changing_downst
     monkeypatch.setattr(actions, "analyze_github_projects", lambda events: {})
     monkeypatch.setattr(actions, "analyze_social_signals", lambda events: {})
     monkeypatch.setattr(actions, "analyze_macro_impact", lambda events, predictions: {})
-    monkeypatch.setattr(actions, "run_prediction_updates", lambda state: [])
-    monkeypatch.setattr(actions, "generate_new_predictions", lambda state: [])
-    monkeypatch.setattr(actions, "generate_daily_report", lambda state: "# Tech Daily Brief — 2026-07-02\n")
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: [])
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: ([], input_state.prediction.signal_level),
+    )
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", lambda state: "# Tech Daily Brief — 2026-07-02\n")
 
     run_daily.run_daily("2026-07-02", force=True)
     output = capsys.readouterr().out
@@ -611,7 +632,7 @@ def test_daily_market_data_collection_failure_remains_non_fatal(monkeypatch, tmp
     def fail_collect_market_data(tickers, cfg):
         raise RuntimeError("market data unavailable")
 
-    def fake_analyze_market_signals(state, market_data, prior_signals, config):
+    def fake_analyze_market_signals_from_input(input_state, *, market_data, prior_signals, config):
         captured["market_data"] = market_data
         return {}
 
@@ -620,11 +641,7 @@ def test_daily_market_data_collection_failure_remains_non_fatal(monkeypatch, tmp
         "collect_market_data",
         types.SimpleNamespace(collect_market_data=fail_collect_market_data),
     )
-    monkeypatch.setitem(
-        sys.modules,
-        "analyze_market_signals",
-        types.SimpleNamespace(analyze_market_signals=fake_analyze_market_signals),
-    )
+    monkeypatch.setattr(actions, "analyze_market_signals_from_input", fake_analyze_market_signals_from_input)
     monkeypatch.setattr(
         actions,
         "collect_sources_with_telemetry",
@@ -649,9 +666,13 @@ def test_daily_market_data_collection_failure_remains_non_fatal(monkeypatch, tmp
     monkeypatch.setattr(actions, "analyze_github_projects", lambda events: {})
     monkeypatch.setattr(actions, "analyze_social_signals", lambda events: {})
     monkeypatch.setattr(actions, "analyze_macro_impact", lambda events, predictions: {})
-    monkeypatch.setattr(actions, "run_prediction_updates", lambda state: [])
-    monkeypatch.setattr(actions, "generate_new_predictions", lambda state: [])
-    monkeypatch.setattr(actions, "generate_daily_report", lambda state: "# Tech Daily Brief — 2026-07-02\n")
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: [])
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: ([], input_state.prediction.signal_level),
+    )
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", lambda state: "# Tech Daily Brief — 2026-07-02\n")
 
     run_daily.run_daily("2026-07-02", force=True)
     output = capsys.readouterr().out

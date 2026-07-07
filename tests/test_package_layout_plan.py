@@ -25,4 +25,21 @@ def test_package_layout_plan_has_incremental_target_structure() -> None:
     assert "tech_daily.collectors" in text
     assert "tech_daily.llm" in text
     assert "tech_daily.pipeline" in text
-    assert "No runtime package wrapper is introduced in Phase 17" in text
+    assert "src/tech_daily/cli/run_daily.py" in text
+    assert "primary daily CLI implementation" in text
+
+
+def test_architecture_boundaries_document_intentional_non_goals() -> None:
+    text = Path("docs/architecture_boundaries.md").read_text(encoding="utf-8")
+
+    assert "TechDailyState remains the compatibility shell" in text
+    assert "Do not introduce a workflow engine" in text
+    assert "Do not introduce dynamic plugin loading" in text
+    assert "Do not introduce a database" in text
+
+
+def test_architecture_boundaries_document_wrapper_policy() -> None:
+    text = Path("docs/architecture_boundaries.md").read_text(encoding="utf-8")
+
+    assert "scripts/ entrypoints may remain as compatibility wrappers" in text
+    assert "New business logic should live under src/tech_daily/" in text

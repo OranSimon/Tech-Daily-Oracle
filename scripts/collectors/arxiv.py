@@ -56,7 +56,7 @@ async def fetch_arxiv(
                 pub = text(entry, "atom:published", ARXIV_NS)
                 summary = text(entry, "atom:summary", ARXIV_NS).replace("\n", " ").strip()
                 arxiv_id_el = entry.find("atom:id", ARXIV_NS)
-                arxiv_url = arxiv_id_el.text.strip() if arxiv_id_el is not None else ""
+                arxiv_url = (arxiv_id_el.text or "").strip() if arxiv_id_el is not None else ""
                 authors = [text(a, "atom:name", ARXIV_NS) for a in entry.findall("atom:author", ARXIV_NS)]
 
                 # Skip old papers

@@ -7,7 +7,7 @@ import claude_client
 import pytest
 from llm_client import ClaudeLLMClient, LLMClient
 from prompt_runner import PromptRunner, PromptRunnerError
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from web_search_client import ClaudeWebSearchClient
 
 
@@ -168,3 +168,123 @@ def test_prompt_runner_returns_structured_error_for_schema_validation(tmp_path: 
 
     assert exc_info.value.kind == "schema_validation_error"
     assert "score" in exc_info.value.message
+
+
+def test_prediction_schema_rejects_out_of_range_probability() -> None:
+    from llm_schemas import NewPredictionResponse
+
+    with pytest.raises(ValidationError):
+        NewPredictionResponse.model_validate(
+            {
+                "prediction_id": "P20260702-1",
+                "created_date": "2026-07-02",
+                "prediction": "Fixture",
+                "topic_tags": ["ai_models"],
+                "companies": ["OpenAI"],
+                "time_horizon": "30 days",
+                "horizon_date": "2026-08-01",
+                "probability": 1.5,
+                "evidence": "Fixture",
+                "resolution_criteria": "Fixture",
+                "falsification_condition": "Fixture",
+                "signals_to_monitor": [],
+                "confidence": "medium",
+            }
+        )
+
+
+def test_market_signal_schema_rejects_invalid_confidence() -> None:
+    from llm_schemas import MarketSignalAnalysisResponse
+
+    payload = {
+        "date": "2026-07-02",
+        "ticker": "NVDA",
+        "company": "NVIDIA",
+        "time_horizon": "30 days",
+        "event_context": [],
+        "conclusion": "neutral",
+        "conclusion_zh": "中性",
+        "reasoning_zh": "fixture",
+        "base_case": "fixture",
+        "bull_case": "fixture",
+        "bear_case": "fixture",
+        "buy_observation_point": "fixture",
+        "sell_reduce_observation_point": "fixture",
+        "invalidation_condition": "fixture",
+        "risk_level": "medium",
+        "confidence": "certain",
+        "signals_to_monitor": [],
+        "source_events": [],
+    }
+
+    with pytest.raises(ValidationError):
+        MarketSignalAnalysisResponse.model_validate(payload)
+
+
+def test_prediction_update_schema_accepts_prompt_contract_impacts() -> None:
+    from llm_schemas import PredictionUpdateResponse
+
+    base_payload = {
+        "prediction_id": "P20260702-1",
+        "update_date": "2026-07-02",
+        "evidence_summary": "Fixture evidence.",
+        "probability_before": 0.4,
+        "probability_after": 0.5,
+        "reasoning": "Fixture reasoning.",
+        "source_event_ids": ["event-1"],
+        "resolution": {"resolved": False, "resolved_as": None, "resolution_reasoning": None},
+    }
+
+    for impact in (
+        "strengthens",
+        "weakens",
+        "neutral",
+        "contradicts",
+        "resolves_true",
+        "resolves_false",
+        "needs_more_data",
+    ):
+        result = PredictionUpdateResponse.model_validate({**base_payload, "impact": impact})
+        assert result.impact == impact
+
+
+def test_prediction_update_schema_rejects_out_of_contract_impact() -> None:
+    from llm_schemas import PredictionUpdateResponse
+
+    payload = {
+        "prediction_id": "P20260702-1",
+        "update_date": "2026-07-02",
+        "evidence_summary": "Fixture evidence.",
+        "impact": "resolves",
+        "probability_before": 0.4,
+        "probability_after": 0.5,
+        "reasoning": "Fixture reasoning.",
+        "source_event_ids": ["event-1"],
+        "resolution": {"resolved": False, "resolved_as": None, "resolution_reasoning": None},
+    }
+
+    with pytest.raises(ValidationError):
+        PredictionUpdateResponse.model_validate(payload)
+
+
+def test_new_prediction_schema_rejects_medium_high_confidence() -> None:
+    from llm_schemas import NewPredictionResponse
+
+    payload = {
+        "prediction_id": "P20260702-1",
+        "created_date": "2026-07-02",
+        "prediction": "Fixture",
+        "topic_tags": ["ai_models"],
+        "companies": ["OpenAI"],
+        "time_horizon": "30 days",
+        "horizon_date": "2026-08-01",
+        "probability": 0.55,
+        "evidence": "Fixture",
+        "resolution_criteria": "Fixture",
+        "falsification_condition": "Fixture",
+        "signals_to_monitor": [],
+        "confidence": "medium-high",
+    }
+
+    with pytest.raises(ValidationError):
+        NewPredictionResponse.model_validate(payload)

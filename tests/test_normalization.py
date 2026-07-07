@@ -54,6 +54,54 @@ def test_high_score_non_tech_hacker_news_story_becomes_general_interesting() -> 
     assert event.social_heat_score == 0.35
 
 
+def test_normalization_scoring_policy_preserves_cross_domain_boost() -> None:
+    raw = RawEvent(
+        source_name="Fixture",
+        source_type="rss",
+        raw_title="OpenAI robotics breakthrough for new cancer biology lab",
+        raw_url="https://example.com/fixture",
+        raw_content="OpenAI robotics platform accelerates biotech discovery.",
+        published_at="2026-07-02T00:00:00+00:00",
+        fetched_at="2026-07-02T00:00:00+00:00",
+        metadata={"priority": 1, "feed_source_type": "company"},
+    )
+
+    [event] = normalize_events([raw], run_date="2026-07-02")
+
+    assert "embodied_ai_robotics" in event.topics
+    assert "health_biotech" in event.topics
+    assert event.importance_score == 1.0
+    assert event.reliability_score == 0.95
+
+
+def test_normalization_reliability_policy_preserves_existing_priority_default_scores() -> None:
+    paper = RawEvent(
+        source_name="arXiv",
+        source_type="arxiv",
+        raw_title="Benchmark paper",
+        raw_url="https://example.com/paper",
+        raw_content="A new inference paper.",
+        published_at="2026-07-02T00:00:00+00:00",
+        fetched_at="2026-07-02T00:00:00+00:00",
+        metadata={},
+    )
+    github = RawEvent(
+        source_name="GitHub",
+        source_type="github",
+        raw_title="Benchmark repo",
+        raw_url="https://example.com/repo",
+        raw_content="A new inference repo.",
+        published_at="2026-07-02T00:00:00+00:00",
+        fetched_at="2026-07-02T00:00:00+00:00",
+        metadata={},
+    )
+
+    paper_event, github_event = normalize_events([paper, github], run_date="2026-07-02")
+
+    assert paper_event.reliability_score == 0.55
+    assert github_event.reliability_score == 0.55
+
+
 def test_normalize_collection_state_matches_legacy_normalize_events() -> None:
     raw_events = [
         _raw("OpenAI releases GPT benchmark"),

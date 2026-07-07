@@ -26,14 +26,19 @@ model:
 # First provider with a valid API key is tried; on failure the next is attempted.
 # Change "order" to rearrange or disable providers (remove from list to skip entirely).
 ai_providers:
-  order: ["claude", "gpt", "gemini"]
+  order: ["deepseek", "claude", "openai", "gemini"]
+
+  deepseek:
+    default: "deepseek-v4-flash"
+    fast:    "deepseek-v4-flash"
+    deep:    "deepseek-v4-pro"
 
   claude:
     default: "claude-sonnet-4-6"
     fast:    "claude-haiku-4-5-20251001"
     deep:    "claude-opus-4-7"
 
-  gpt:
+  openai:
     default: "gpt-5.5"           # current flagship: 1M context, strong reasoning
     fast:    "gpt-5.4-nano"      # cheapest GPT-5-class, high-volume simple calls
     deep:    "gpt-5.5"           # no separate pro tier; flagship handles deep tasks

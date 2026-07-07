@@ -6,13 +6,15 @@ import json
 from typing import Any
 
 from llm_schemas import NewPredictionsResponse, PredictionUpdatesResponse
-from prompt_runner import PromptRunner
+from pipeline_state import PredictionInputState
+from prompt_runner import PromptRunner, PromptRunnerError
 from state import (
     NormalizedEvent,
     Prediction,
     PredictionUpdate,
     TechDailyState,
 )
+from tech_daily.predictions.results import PredictionOperationResult
 
 
 def _determine_signal_level(events: list[NormalizedEvent]) -> str:
@@ -24,9 +26,9 @@ def _determine_signal_level(events: list[NormalizedEvent]) -> str:
     return "low"
 
 
-def _build_today_summary(state: TechDailyState) -> dict[str, Any]:
+def _build_today_summary_from_input(input_state: PredictionInputState) -> dict[str, Any]:
     return {
-        "run_date": state.run_date,
+        "run_date": input_state.run_metadata.run_date,
         "top_events": [
             {
                 "event_id": e.event_id,
@@ -36,7 +38,7 @@ def _build_today_summary(state: TechDailyState) -> dict[str, Any]:
                 "topics": e.topics,
                 "importance_score": e.importance_score,
             }
-            for e in sorted(state.normalized_events, key=lambda x: x.importance_score, reverse=True)[:15]
+            for e in sorted(input_state.corpus.normalized_events, key=lambda x: x.importance_score, reverse=True)[:15]
         ],
         "topic_summaries": {
             k: {
@@ -44,7 +46,7 @@ def _build_today_summary(state: TechDailyState) -> dict[str, Any]:
                 "key_signal_summary": v.key_signal_summary,
                 "signal_classification": v.signal_classification,
             }
-            for k, v in state.topic_summaries.items()
+            for k, v in input_state.analysis.topic_summaries.items()
             if v.report_worthy
         },
         "company_analyses": {
@@ -52,20 +54,37 @@ def _build_today_summary(state: TechDailyState) -> dict[str, Any]:
                 "significance": v.significance,
                 "summary": v.summary,
             }
-            for k, v in state.company_analyses.items()
+            for k, v in input_state.analysis.company_analyses.items()
             if v.significance in ("high", "medium")
         },
     }
+
+
+def _build_today_summary(state: TechDailyState) -> dict[str, Any]:
+    return _build_today_summary_from_input(PredictionInputState.from_tech_daily_state(state))
+
+
+def _prediction_error_kind(exc: Exception) -> str:
+    if isinstance(exc, PromptRunnerError):
+        return exc.kind
+    return type(exc).__name__
 
 
 def _run_prediction_update_batch(
     state: TechDailyState,
     prompt_runner: PromptRunner,
 ) -> list[PredictionUpdate]:
-    if not state.open_predictions:
+    return _run_prediction_update_batch_from_input(PredictionInputState.from_tech_daily_state(state), prompt_runner)
+
+
+def _run_prediction_update_batch_from_input(
+    input_state: PredictionInputState,
+    prompt_runner: PromptRunner,
+) -> list[PredictionUpdate]:
+    if not input_state.prediction.open_predictions:
         return []
 
-    today_summary = _build_today_summary(state)
+    today_summary = _build_today_summary_from_input(input_state)
 
     pred_payload = [
         {
@@ -78,7 +97,7 @@ def _run_prediction_update_batch(
             "topic_tags": p.topic_tags,
             "companies": p.companies,
         }
-        for p in state.open_predictions
+        for p in input_state.prediction.open_predictions
     ]
 
     user_msg = json.dumps(
@@ -105,10 +124,10 @@ def _run_prediction_update_batch(
     updates = []
     for r in results.root:
         updates.append(
-            PredictionUpdate(
-                prediction_id=r.prediction_id,
-                update_date=state.run_date,
-                evidence_summary=r.evidence_summary,
+                PredictionUpdate(
+                    prediction_id=r.prediction_id,
+                    update_date=input_state.run_metadata.run_date,
+                    evidence_summary=r.evidence_summary,
                 impact=r.impact,
                 probability_before=r.probability_before,
                 probability_after=r.probability_after,
@@ -126,32 +145,62 @@ def run_prediction_updates(
     state: TechDailyState,
     prompt_runner: PromptRunner | None = None,
 ) -> list[PredictionUpdate]:
-    if not state.open_predictions:
-        return []
+    return run_prediction_updates_from_input(PredictionInputState.from_tech_daily_state(state), prompt_runner=prompt_runner)
 
+
+def run_prediction_updates_from_input(
+    input_state: PredictionInputState,
+    prompt_runner: PromptRunner | None = None,
+) -> list[PredictionUpdate]:
+    return run_prediction_updates_result_from_input(input_state, prompt_runner=prompt_runner).value
+
+
+def run_prediction_updates_result_from_input(
+    input_state: PredictionInputState,
+    prompt_runner: PromptRunner | None = None,
+) -> PredictionOperationResult[list[PredictionUpdate]]:
+    if not input_state.prediction.open_predictions:
+        return PredictionOperationResult.ok([])
     try:
-        return _run_prediction_update_batch(state, prompt_runner or PromptRunner())
-    except Exception as e:
-        print(f"  [Predictions] Update failed: {e}")
-        return []
+        updates = _run_prediction_update_batch_from_input(input_state, prompt_runner or PromptRunner())
+        return PredictionOperationResult.ok(updates)
+    except Exception as exc:
+        print(f"  [Predictions] Update failed: {exc}")
+        return PredictionOperationResult.failed(
+            [],
+            error_kind=_prediction_error_kind(exc),
+            error_message=str(exc),
+        )
 
 
 def _generate_new_prediction_batch(
     state: TechDailyState,
     prompt_runner: PromptRunner,
 ) -> list[Prediction]:
-    today_summary = _build_today_summary(state)
-    signal_level = _determine_signal_level(state.normalized_events)
+    new_predictions, signal_level = _generate_new_prediction_batch_from_input(
+        PredictionInputState.from_tech_daily_state(state),
+        prompt_runner,
+    )
     state.signal_level = signal_level
+    return new_predictions
 
-    existing_ids = {p.prediction_id for p in state.open_predictions}
+
+def _generate_new_prediction_batch_from_input(
+    input_state: PredictionInputState,
+    prompt_runner: PromptRunner,
+) -> tuple[list[Prediction], str]:
+    today_summary = _build_today_summary_from_input(input_state)
+    signal_level = _determine_signal_level(input_state.corpus.normalized_events)
+
+    existing_ids = {p.prediction_id for p in input_state.prediction.open_predictions}
 
     user_msg = json.dumps(
         {
-            "run_date": state.run_date,
+            "run_date": input_state.run_metadata.run_date,
             "today_summary": today_summary,
             "open_predictions": [
-                {"prediction_id": p.prediction_id, "prediction": p.prediction} for p in state.open_predictions
+                {"prediction_id": p.prediction_id, "prediction": p.prediction}
+                for p in input_state.prediction.open_predictions
             ],
             "recently_resolved": [],
             "signal_level": signal_level,
@@ -195,16 +244,41 @@ def _generate_new_prediction_batch(
         )
 
     print(f"  [Predictions] Generated {len(new_preds)} new predictions (signal_level={signal_level})")
-    return new_preds
+    return new_preds, signal_level
 
 
 def generate_new_predictions(
     state: TechDailyState,
     prompt_runner: PromptRunner | None = None,
 ) -> list[Prediction]:
-    try:
-        return _generate_new_prediction_batch(state, prompt_runner or PromptRunner())
+    input_state = PredictionInputState.from_tech_daily_state(state)
+    new_predictions, signal_level = generate_new_predictions_from_input(input_state, prompt_runner=prompt_runner)
+    state.signal_level = signal_level
+    return new_predictions
 
-    except Exception as e:
-        print(f"  [Predictions] Generation failed: {e}")
-        return []
+
+def generate_new_predictions_from_input(
+    input_state: PredictionInputState,
+    prompt_runner: PromptRunner | None = None,
+) -> tuple[list[Prediction], str]:
+    return generate_new_predictions_result_from_input(input_state, prompt_runner=prompt_runner).value
+
+
+def generate_new_predictions_result_from_input(
+    input_state: PredictionInputState,
+    prompt_runner: PromptRunner | None = None,
+) -> PredictionOperationResult[tuple[list[Prediction], str]]:
+    fallback = ([], _determine_signal_level(input_state.corpus.normalized_events))
+    try:
+        new_predictions, signal_level = _generate_new_prediction_batch_from_input(
+            input_state,
+            prompt_runner or PromptRunner(),
+        )
+        return PredictionOperationResult.ok((new_predictions, signal_level))
+    except Exception as exc:
+        print(f"  [Predictions] Generation failed: {exc}")
+        return PredictionOperationResult.failed(
+            fallback,
+            error_kind=_prediction_error_kind(exc),
+            error_message=str(exc),
+        )

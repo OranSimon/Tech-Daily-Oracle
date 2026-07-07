@@ -13,8 +13,14 @@ FORBIDDEN_CLAUDE_TOKENS = [
 ALLOWED_CLAUDE_BOUNDARY_FILES = {
     Path("scripts/claude_client.py"),
     Path("scripts/llm_client.py"),
-    Path("scripts/web_search_client.py"),
+    Path("src/tech_daily/llm/client.py"),
+    Path("src/tech_daily/web_search/client.py"),
 }
+
+CLAUDE_GUARD_GLOB_ROOTS = (
+    Path("scripts"),
+    Path("src/tech_daily"),
+)
 
 MIGRATED_ANALYZERS = [
     Path("scripts/analyze_topics.py"),
@@ -41,9 +47,9 @@ def test_migrated_analyzers_do_not_import_or_call_claude_directly() -> None:
 
 
 def test_only_boundary_files_use_legacy_claude_client_directly() -> None:
-    production_scripts = sorted(Path("scripts").rglob("*.py"))
+    production_modules = sorted(path for root in CLAUDE_GUARD_GLOB_ROOTS for path in root.rglob("*.py"))
 
-    for path in production_scripts:
+    for path in production_modules:
         if path in ALLOWED_CLAUDE_BOUNDARY_FILES:
             continue
         text = path.read_text(encoding="utf-8")

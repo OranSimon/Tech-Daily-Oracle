@@ -1,21 +1,7 @@
-"""Small boundary for external web-search collection."""
+"""Compatibility wrapper for the package-owned web-search boundary."""
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from tech_daily.web_search.client import ClaudeWebSearchClient, WebSearchClient
 
-
-class WebSearchClient(Protocol):
-    """Minimal protocol for web-search collectors and test fakes."""
-
-    def search(self, prompt: str, max_uses: int = 3) -> list[dict[str, Any]]:
-        """Return structured web-search result dictionaries for a prompt."""
-
-
-class ClaudeWebSearchClient:
-    """Adapter around the existing Claude built-in web-search helper."""
-
-    def search(self, prompt: str, max_uses: int = 3) -> list[dict[str, Any]]:
-        from claude_client import call_claude_web_search
-
-        return call_claude_web_search(prompt, max_uses=max_uses)
+__all__ = ["ClaudeWebSearchClient", "WebSearchClient"]

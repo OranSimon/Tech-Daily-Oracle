@@ -4,9 +4,10 @@ import json
 from io import StringIO
 from pathlib import Path
 
-import run_daily
 from run_context import AppConfig, RunContext
 from run_logging import RunLogger
+
+import tech_daily.cli.run_daily as run_daily
 
 
 def test_run_context_builds_paths_and_metadata(tmp_path: Path) -> None:

@@ -153,9 +153,10 @@ pip install anthropic httpx pyyaml
 
 **Required — at least one AI provider key:**
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...   # Claude (primary by default)
-export OPENAI_API_KEY=sk-...          # GPT (1st fallback by default)
-export GEMINI_API_KEY=AIza...         # Gemini (2nd fallback by default)
+export DEEPSEEK_API_KEY=sk-...        # DeepSeek (first provider by default)
+export ANTHROPIC_API_KEY=sk-ant-...   # Claude fallback + web search
+export OPENAI_API_KEY=sk-...          # OpenAI fallback
+export GEMINI_API_KEY=AIza...         # Gemini fallback
 ```
 The system tries providers in order. It skips any provider whose key is missing, so you only need the keys for providers you want active.
 
@@ -298,16 +299,16 @@ The MarketSignalAgent generates qualitative per-ticker signals using a "sensor f
 
 ## AI Provider Fallback
 
-The system uses a provider chain: **Claude → GPT → Gemini** by default. On any API error, rate-limit, or missing key the next provider is tried transparently:
+The system uses a provider chain: **DeepSeek → Claude → OpenAI → Gemini** by default. On any API error, rate-limit, or missing key the next provider is tried transparently:
 
 ```
-[AI] claude (claude-sonnet-4-6) failed: 529 overloaded
-[AI] Using fallback provider: gpt (gpt-4o)
+[AI] deepseek (deepseek-v4-flash) failed: quota exceeded
+[AI] Using fallback provider: claude (claude-sonnet-4-6)
 ```
 
 **Auto-continuation on truncation:** If any report response hits `max_tokens`, Claude automatically resumes via assistant-message prefill (up to 4 continuations), ensuring reports are never cut mid-sentence. This applies to all markdown reports (daily, weekly, monthly). JSON calls (topic analysis, market signals) do not auto-continue — they use a 4096-token budget which is sufficient for structured outputs.
 
-**Model role mapping:** Roles (fast / default / deep) are preserved across providers — a fast Claude call becomes a fast GPT call, not a full-cost one. Models are configured in `config.yml` under `ai_providers`.
+**Model role mapping:** Roles (fast / default / deep) are preserved across providers — a fast Claude-style call becomes a fast DeepSeek/OpenAI/Gemini call, not a full-cost one. Models are configured in `config.yml` under `ai_providers`.
 
 **`web_search` is Claude-only** — the `web_search_20250305` built-in tool is Anthropic-specific. If Claude is unavailable when web search runs, those queries are skipped; the rest of the pipeline continues normally with the fallback provider.
 
@@ -315,7 +316,7 @@ The system uses a provider chain: **Claude → GPT → Gemini** by default. On a
 
 ```yaml
 ai_providers:
-  order: ["gpt", "claude", "gemini"]   # make GPT primary
+  order: ["deepseek", "claude", "openai", "gemini"]
 ```
 
 **Disabling a provider:**
@@ -362,9 +363,10 @@ Add these **Repository Secrets** (Settings → Secrets and variables → Actions
 
 | Secret | Required | Notes |
 |--------|----------|-------|
-| `ANTHROPIC_API_KEY` | Recommended | Claude — primary provider |
-| `OPENAI_API_KEY` | Recommended | GPT — 1st fallback |
-| `GEMINI_API_KEY` | Optional | Gemini — 2nd fallback |
+| `DEEPSEEK_API_KEY` | Recommended | DeepSeek — first provider by default |
+| `ANTHROPIC_API_KEY` | Recommended | Claude fallback and Claude web search |
+| `OPENAI_API_KEY` | Recommended | OpenAI fallback |
+| `GEMINI_API_KEY` | Optional | Gemini fallback |
 | `HF_TOKEN` | Recommended | Hugging Face access |
 | `NOTION_API_KEY` | Optional | If publishing to Notion |
 | `NOTION_DATABASE_ID` | Optional | With above |

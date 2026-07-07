@@ -2,6 +2,13 @@
 
 Business modules must not import or call `claude_client` directly. The legacy client stays available only behind adapter files so tests can use fakes and production behavior remains centralized.
 
+Production text and JSON generation currently uses the provider order in
+`config.yml` under `ai_providers.order`. The default order is
+`deepseek`, `claude`, `openai`, then `gemini`; missing API keys or provider
+errors fall through to the next configured provider. DeepSeek uses the
+OpenAI-compatible API with `DEEPSEEK_API_KEY` and the
+`https://api.deepseek.com` base URL.
+
 Allowed direct Claude call sites:
 
 - `scripts/claude_client.py`
@@ -79,3 +86,10 @@ results = call_claude_web_search(prompt, max_uses=3)
 ```
 
 The guard test `tests/test_migrated_analyzers_no_direct_claude.py` scans production scripts and fails if direct Claude usage appears outside the explicit boundary allowlist.
+
+## Schema Semantics
+
+LLM schemas should validate both shape and stable domain semantics where the
+downstream code already relies on those semantics. Probabilities must be in
+`[0.0, 1.0]`; confidence/risk/status-like fields should use explicit literals
+only after existing fixtures prove the allowed values.

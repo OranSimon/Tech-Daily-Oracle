@@ -1,6 +1,6 @@
-"""AI client — Claude primary with automatic GPT / Gemini fallback.
+"""AI client — DeepSeek primary with automatic Claude / OpenAI / Gemini fallback.
 
-Provider order defaults to claude → gpt → gemini.
+Provider order defaults to deepseek → claude → openai → gemini.
 Override in config.yml under ai_providers.order.
 Each provider is tried in turn; the first successful response is returned.
 web_search is Claude-only (Anthropic built-in tool) and never falls back.
@@ -19,20 +19,26 @@ import anthropic
 # ---------------------------------------------------------------------------
 
 _anthropic_client: anthropic.Anthropic | None = None
+_deepseek_client: Any = None     # openai.OpenAI with DeepSeek base_url — imported on demand
 _openai_client: Any = None       # openai.OpenAI — imported on demand
 _gemini_configured: bool = False  # google.generativeai — configured on demand
 
 DEFAULT_MODEL = "claude-sonnet-4-6"
-DEFAULT_PROVIDER_ORDER = ["claude", "gpt", "gemini"]
+DEFAULT_PROVIDER_ORDER = ["deepseek", "claude", "openai", "gemini"]
 
 # Role → model name defaults for each provider
 _DEFAULT_MODELS: dict[str, dict[str, str]] = {
+    "deepseek": {
+        "default": "deepseek-v4-flash",
+        "fast":    "deepseek-v4-flash",
+        "deep":    "deepseek-v4-pro",
+    },
     "claude": {
         "default": "claude-sonnet-4-6",
         "fast":    "claude-haiku-4-5-20251001",
         "deep":    "claude-opus-4-7",
     },
-    "gpt": {
+    "openai": {
         "default": "gpt-4o",
         "fast":    "gpt-4o-mini",
         "deep":    "o1",
@@ -59,11 +65,15 @@ def _load_provider_config() -> tuple[list[str], dict[str, dict[str, str]]]:
         ai_cfg = cfg.get("ai_providers", {})
         order: list[str] = ai_cfg.get("order", DEFAULT_PROVIDER_ORDER)
         models: dict[str, dict[str, str]] = {}
-        for provider in ("claude", "gpt", "gemini"):
+        for provider in ("deepseek", "claude", "openai", "gemini"):
             models[provider] = {**_DEFAULT_MODELS[provider], **ai_cfg.get(provider, {})}
+        # Backward-compatible alias for older config/tests that still use "gpt".
+        models["gpt"] = {**models["openai"], **ai_cfg.get("gpt", {})}
         return order, models
     except Exception:
-        return DEFAULT_PROVIDER_ORDER, dict(_DEFAULT_MODELS)
+        models = dict(_DEFAULT_MODELS)
+        models["gpt"] = models["openai"]
+        return DEFAULT_PROVIDER_ORDER, models
 
 
 # ---------------------------------------------------------------------------
@@ -98,12 +108,8 @@ def _call_claude_direct(
     return response.content[0].text, normalized
 
 
-def _call_gpt_direct(system: str, user: str, model: str, max_tokens: int) -> tuple[str, str]:
-    global _openai_client
-    if _openai_client is None:
-        import openai  # optional dependency
-        _openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    response = _openai_client.chat.completions.create(
+def _call_openai_compatible_direct(client: Any, system: str, user: str, model: str, max_tokens: int) -> tuple[str, str]:
+    response = client.chat.completions.create(
         model=model,
         max_tokens=max_tokens,
         messages=[
@@ -111,10 +117,32 @@ def _call_gpt_direct(system: str, user: str, model: str, max_tokens: int) -> tup
             {"role": "user", "content": user},
         ],
     )
-    # OpenAI finish_reasons: stop, length, content_filter, tool_calls, function_call
     finish_reason = getattr(response.choices[0], "finish_reason", "stop")
     normalized = "max_tokens" if finish_reason == "length" else "end_turn"
     return response.choices[0].message.content or "", normalized
+
+
+def _call_deepseek_direct(system: str, user: str, model: str, max_tokens: int) -> tuple[str, str]:
+    global _deepseek_client
+    if _deepseek_client is None:
+        import openai  # optional dependency; DeepSeek exposes an OpenAI-compatible API
+        _deepseek_client = openai.OpenAI(
+            api_key=os.environ.get("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com",
+        )
+    return _call_openai_compatible_direct(_deepseek_client, system, user, model, max_tokens)
+
+
+def _call_gpt_direct(system: str, user: str, model: str, max_tokens: int) -> tuple[str, str]:
+    return _call_openai_direct(system, user, model, max_tokens)
+
+
+def _call_openai_direct(system: str, user: str, model: str, max_tokens: int) -> tuple[str, str]:
+    global _openai_client
+    if _openai_client is None:
+        import openai  # optional dependency
+        _openai_client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    return _call_openai_compatible_direct(_openai_client, system, user, model, max_tokens)
 
 
 def _call_gemini_direct(system: str, user: str, model: str, max_tokens: int) -> tuple[str, str]:
@@ -185,7 +213,13 @@ def _resolve_model(
     """Return the best model name for *provider* given a Claude-style model hint."""
     pm = models.get(provider, _DEFAULT_MODELS.get(provider, {}))
     # If the hint already looks native to this provider, use it directly
-    native_prefixes = {"claude": "claude", "gpt": ("gpt", "o1", "o3"), "gemini": "gemini"}
+    native_prefixes = {
+        "deepseek": "deepseek",
+        "claude": "claude",
+        "gpt": ("gpt", "o1", "o3"),
+        "openai": ("gpt", "o1", "o3"),
+        "gemini": "gemini",
+    }
     prefix = native_prefixes.get(provider, "")
     if isinstance(prefix, str) and model_hint.startswith(prefix):
         return model_hint
@@ -222,14 +256,18 @@ def _call_with_fallback(
     for provider in order:
         resolved = _resolve_model(provider, model, models)
         try:
-            if provider == "claude":
+            if provider == "deepseek":
+                if not os.environ.get("DEEPSEEK_API_KEY"):
+                    raise RuntimeError("DEEPSEEK_API_KEY not set")
+                text, stop_reason = _call_deepseek_direct(system, user, resolved, max_tokens)
+            elif provider == "claude":
                 if not os.environ.get("ANTHROPIC_API_KEY"):
                     raise RuntimeError("ANTHROPIC_API_KEY not set")
                 text, stop_reason = _call_claude_direct(system, user, resolved, max_tokens, cache_system)
-            elif provider == "gpt":
+            elif provider in {"openai", "gpt"}:
                 if not os.environ.get("OPENAI_API_KEY"):
                     raise RuntimeError("OPENAI_API_KEY not set")
-                text, stop_reason = _call_gpt_direct(system, user, resolved, max_tokens)
+                text, stop_reason = _call_openai_direct(system, user, resolved, max_tokens)
             elif provider == "gemini":
                 if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
                     raise RuntimeError("GEMINI_API_KEY / GOOGLE_API_KEY not set")

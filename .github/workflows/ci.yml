@@ -28,21 +28,7 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Define quality scope
-        run: |
-          cat > quality-paths.txt <<'EOF'
-          tests
-          scripts/config_models.py
-          scripts/collectors/retry.py
-          scripts/collectors/telemetry.py
-          scripts/pipeline_errors.py
-          scripts/pipeline_policy.py
-          scripts/pipeline_state.py
-          scripts/pipeline_step.py
-          scripts/run_context.py
-          scripts/run_logging.py
-          scripts/storage_io.py
-          scripts/storage_validation.py
-          EOF
+        run: python -m tech_daily.quality_paths > quality-paths.txt
 
       - name: Ruff format check
         run: xargs ruff format --check < quality-paths.txt

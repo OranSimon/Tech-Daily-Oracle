@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import sys
-import types
 from datetime import UTC, datetime
 from pathlib import Path
 
 import daily_step_actions as actions
-import run_daily
 import storage
 from collectors.telemetry import CollectorRunResult, CollectorRunStatus
+from pipeline_state import ReportInputState
 from state import (
     CompanyAnalysis,
     NormalizedEvent,
@@ -19,6 +17,8 @@ from state import (
     TechDailyState,
     TopicSummary,
 )
+
+import tech_daily.cli.run_daily as run_daily
 
 
 def _point_storage_at(tmp_path: Path) -> None:
@@ -199,9 +199,10 @@ def _run_daily_with_fakes(
     load_last_signal_per_ticker_impl=None,
     run_prediction_updates_impl=None,
     generate_new_predictions_impl=None,
+    generate_new_predictions_signal_level: str | None = None,
     generate_daily_report_impl=None,
     publish_to_notion_impl=None,
-) -> tuple[str, TechDailyState]:
+) -> tuple[str, ReportInputState]:
     _point_storage_at(tmp_path)
     monkeypatch.setattr(run_daily, "ROOT", str(tmp_path))
     raw_config = config or {
@@ -228,7 +229,7 @@ def _run_daily_with_fakes(
     )
 
     events = normalized_events if normalized_events is not None else [_normalized_event()]
-    captured: dict[str, TechDailyState] = {}
+    captured: dict[str, ReportInputState] = {}
 
     monkeypatch.setattr(
         actions,
@@ -268,26 +269,42 @@ def _run_daily_with_fakes(
         analyze_macro_impact_impl or (lambda normalized, predictions: {}),
     )
     if analyze_market_signals_impl is not None:
-        monkeypatch.setitem(
-            sys.modules,
-            "analyze_market_signals",
-            types.SimpleNamespace(analyze_market_signals=analyze_market_signals_impl),
+        monkeypatch.setattr(
+            actions,
+            "analyze_market_signals_from_input",
+            lambda input_state, *, market_data, prior_signals, config: analyze_market_signals_impl(
+                input_state.to_tech_daily_state(),
+                market_data,
+                prior_signals,
+                config,
+            ),
         )
-    monkeypatch.setattr(actions, "run_prediction_updates", run_prediction_updates_impl or (lambda state: []))
-    monkeypatch.setattr(actions, "generate_new_predictions", generate_new_predictions_impl or (lambda state: []))
+    monkeypatch.setattr(
+        actions,
+        "run_prediction_updates_from_input",
+        lambda input_state: (run_prediction_updates_impl or (lambda state: []))(input_state.to_tech_daily_state()),
+    )
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: (
+            (generate_new_predictions_impl or (lambda state: []))(input_state.to_tech_daily_state()),
+            generate_new_predictions_signal_level or input_state.prediction.signal_level,
+        ),
+    )
     monkeypatch.setattr(actions, "save_market_signals", lambda *args, **kwargs: None)
 
-    def fake_report(state: TechDailyState) -> str:
-        captured["state"] = state
+    def fake_report(input_state: ReportInputState) -> str:
+        captured["input_state"] = input_state
         if generate_daily_report_impl is not None:
-            return generate_daily_report_impl(state)
+            return generate_daily_report_impl(input_state)
         return "# Tech Daily Brief — 2026-07-02\n"
 
-    monkeypatch.setattr(actions, "generate_daily_report", fake_report)
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", fake_report)
     monkeypatch.setattr(actions, "publish_to_notion", publish_to_notion_impl or (lambda *args, **kwargs: None))
 
     report = run_daily.run_daily("2026-07-02", force=True)
-    return report, captured["state"]
+    return report, captured["input_state"]
 
 
 def test_topic_analysis_success_updates_state_and_step_summary(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -301,8 +318,8 @@ def test_topic_analysis_success_updates_state_and_step_summary(monkeypatch, tmp_
     output = capsys.readouterr().out
 
     assert report.startswith("# Tech Daily Brief")
-    assert state.topic_summaries == {"ai_models": topic}
-    assert state.confidence_flags == []
+    assert state.analysis.topic_summaries == {"ai_models": topic}
+    assert state.diagnostics.confidence_flags == []
     assert "step=Analyzing topics message=completed" in output
     assert '"name": "Analyzing topics"' in output
 
@@ -316,8 +333,8 @@ def test_topic_analysis_failure_preserves_default_state_and_confidence_flag(
     _, state = _run_daily_with_fakes(monkeypatch, tmp_path, analyze_topics_impl=fail_topics)
     output = capsys.readouterr().out
 
-    assert state.topic_summaries == {}
-    assert state.confidence_flags == ["Topic analysis error: topic analyzer unavailable"]
+    assert state.analysis.topic_summaries == {}
+    assert state.diagnostics.confidence_flags == ["Topic analysis error: topic analyzer unavailable"]
     assert "[ERROR] Topic analysis failed: topic analyzer unavailable" in output
     assert "step=Analyzing topics message=topic analysis failed" in output
 
@@ -337,8 +354,8 @@ def test_topic_analysis_empty_normalized_input_uses_analyzer_result(monkeypatch,
     )
 
     assert calls == [[]]
-    assert state.topic_summaries == {}
-    assert state.confidence_flags == []
+    assert state.analysis.topic_summaries == {}
+    assert state.diagnostics.confidence_flags == []
 
 
 def test_company_paper_and_github_analysis_success_update_state(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -355,10 +372,10 @@ def test_company_paper_and_github_analysis_success_update_state(monkeypatch, tmp
     )
     output = capsys.readouterr().out
 
-    assert state.company_analyses == {"OpenAI": company}
-    assert state.paper_analyses == {"paper-fixture": paper}
-    assert state.github_project_analyses == {"example/repo": project}
-    assert state.confidence_flags == []
+    assert state.analysis.company_analyses == {"OpenAI": company}
+    assert state.analysis.paper_analyses == {"paper-fixture": paper}
+    assert state.analysis.github_project_analyses == {"example/repo": project}
+    assert state.diagnostics.confidence_flags == []
     assert "step=Analyzing companies message=completed" in output
     assert "step=Analyzing papers message=completed" in output
     assert "step=Analyzing GitHub projects message=completed" in output
@@ -383,10 +400,10 @@ def test_company_paper_and_github_analysis_failures_preserve_fallbacks(monkeypat
     )
     output = capsys.readouterr().out
 
-    assert state.company_analyses == {}
-    assert state.paper_analyses == {}
-    assert state.github_project_analyses == {}
-    assert state.confidence_flags == [
+    assert state.analysis.company_analyses == {}
+    assert state.analysis.paper_analyses == {}
+    assert state.analysis.github_project_analyses == {}
+    assert state.diagnostics.confidence_flags == [
         "Company analysis error: company unavailable",
         "Paper analysis error: paper unavailable",
         "GitHub analysis error: github unavailable",
@@ -424,9 +441,9 @@ def test_company_paper_and_github_empty_input_passes_through(monkeypatch, tmp_pa
     )
 
     assert calls == {"companies": [], "papers": [], "github": []}
-    assert state.company_analyses == {}
-    assert state.paper_analyses == {}
-    assert state.github_project_analyses == {}
+    assert state.analysis.company_analyses == {}
+    assert state.analysis.paper_analyses == {}
+    assert state.analysis.github_project_analyses == {}
 
 
 def test_social_macro_trending_and_market_analysis_success_update_state(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -469,10 +486,10 @@ def test_social_macro_trending_and_market_analysis_success_update_state(monkeypa
     )
     output = capsys.readouterr().out
 
-    assert state.trending_analysis == "trending-analysis"
-    assert state.social_signal_analyses == {"social": "analysis"}
-    assert state.macro_impact_analyses == {"macro": "analysis"}
-    assert state.market_signal_analyses == {"NVDA": "market-analysis"}
+    assert state.analysis.trending_analysis == "trending-analysis"
+    assert state.analysis.social_signal_analyses == {"social": "analysis"}
+    assert state.analysis.macro_impact_analyses == {"macro": "analysis"}
+    assert state.analysis.market_signal_analyses == {"NVDA": "market-analysis"}
     assert captured["trending_args"] == (trending_snapshot, trending_history, 5)
     assert captured["social_events"] == [_normalized_event()]
     assert captured["macro_args"] == ([_normalized_event()], [])
@@ -517,11 +534,11 @@ def test_social_macro_trending_and_market_analysis_failures_preserve_fallbacks(
     )
     output = capsys.readouterr().out
 
-    assert state.trending_analysis is None
-    assert state.social_signal_analyses == {}
-    assert state.macro_impact_analyses == {}
-    assert state.market_signal_analyses == {}
-    assert state.confidence_flags == []
+    assert state.analysis.trending_analysis is None
+    assert state.analysis.social_signal_analyses == {}
+    assert state.analysis.macro_impact_analyses == {}
+    assert state.analysis.market_signal_analyses == {}
+    assert state.diagnostics.confidence_flags == []
     assert "[ERROR] Trending analysis failed (non-fatal): trending analysis unavailable" in output
     assert "[ERROR] Social analysis failed: social unavailable" in output
     assert "[ERROR] Macro analysis failed: macro unavailable" in output
@@ -549,11 +566,23 @@ def test_prediction_steps_success_preserve_returned_updates_and_new_predictions(
     )
     output = capsys.readouterr().out
 
-    assert state.prediction_updates == [update]
-    assert state.new_predictions == duplicate_predictions
-    assert [prediction.status for prediction in state.new_predictions] == ["open", "open"]
+    assert state.prediction.prediction_updates == [update]
+    assert state.prediction.new_predictions == duplicate_predictions
+    assert [prediction.status for prediction in state.prediction.new_predictions] == ["open", "open"]
     assert "step=Updating predictions message=completed" in output
     assert "step=Generating new predictions message=completed" in output
+
+
+def test_prediction_steps_apply_returned_signal_level_to_report_input(monkeypatch, tmp_path: Path) -> None:
+    _, state = _run_daily_with_fakes(
+        monkeypatch,
+        tmp_path,
+        generate_new_predictions_impl=lambda state: [_prediction("P20260702-HIGH")],
+        generate_new_predictions_signal_level="high",
+    )
+
+    assert state.prediction.new_predictions == [_prediction("P20260702-HIGH")]
+    assert state.run_metadata.signal_level == "high"
 
 
 def test_prediction_step_failures_preserve_empty_fallbacks(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -571,8 +600,8 @@ def test_prediction_step_failures_preserve_empty_fallbacks(monkeypatch, tmp_path
     )
     output = capsys.readouterr().out
 
-    assert state.prediction_updates == []
-    assert state.new_predictions == []
+    assert state.prediction.prediction_updates == []
+    assert state.prediction.new_predictions == []
     assert "[ERROR] Prediction updates failed: prediction updates unavailable" in output
     assert "[ERROR] New predictions failed: new predictions unavailable" in output
     assert "step=Updating predictions message=prediction updates failed" in output
@@ -588,7 +617,6 @@ def test_report_generation_and_saving_steps_are_wrapped(monkeypatch, tmp_path: P
     output = capsys.readouterr().out
 
     assert report == "# Tech Daily Brief — 2026-07-02\n\nFixture report.\n"
-    assert state.final_report == report
     assert (tmp_path / "reports" / "daily" / "2026-07-02.md").read_text(encoding="utf-8") == report
     assert "step=Generating daily brief report message=completed" in output
     assert "step=Saving outputs message=completed" in output

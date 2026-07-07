@@ -8,7 +8,7 @@ import random
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import TypeVar, cast
+from typing import TypeVar, cast, overload
 
 from collectors.telemetry import CollectorWarning
 
@@ -74,8 +74,28 @@ def _append_warning(
     )
 
 
+@overload
+async def retry_async(
+    func: Callable[[], Awaitable[T]],
+    *,
+    operation_name: str,
+    warnings: list[CollectorWarning] | None = None,
+    config: RetryConfig | None = None,
+) -> T: ...
+
+
+@overload
 async def retry_async(
     func: Callable[[], T],
+    *,
+    operation_name: str,
+    warnings: list[CollectorWarning] | None = None,
+    config: RetryConfig | None = None,
+) -> T: ...
+
+
+async def retry_async(
+    func: Callable[[], T | Awaitable[T]],
     *,
     operation_name: str,
     warnings: list[CollectorWarning] | None = None,

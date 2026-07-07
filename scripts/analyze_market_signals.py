@@ -25,10 +25,28 @@ from typing import Any
 import yaml
 from analyzer_helpers import schema_to_dataclass
 from llm_schemas import MarketSignalAnalysisResponse
+from pipeline_state import AnalysisState, CorpusState, MarketSignalInputState, RunMetadataState
 from prompt_runner import PromptRunner
 from state import MarketSignalAnalysis, TechDailyState
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _market_signal_input_from_state(state: TechDailyState) -> MarketSignalInputState:
+    return MarketSignalInputState(
+        run_metadata=RunMetadataState(
+            run_id=getattr(state, "run_id", ""),
+            run_date=state.run_date,
+            time_window=getattr(state, "time_window", ""),
+            signal_level=getattr(state, "signal_level", "normal"),
+        ),
+        corpus=CorpusState(normalized_events=state.normalized_events),
+        analysis=AnalysisState(
+            company_analyses=state.company_analyses,
+            macro_impact_analyses=state.macro_impact_analyses,
+            topic_summaries=state.topic_summaries,
+        ),
+    )
 
 
 def _load_watchlist(config: dict) -> dict:
@@ -71,12 +89,16 @@ def _find_company_analysis(watchlist_company: str, company_analyses: dict) -> An
     return None
 
 
-def _find_related_events(watchlist_company: str, state: TechDailyState, top_n: int = 5) -> list[dict]:
+def _find_related_events_from_input(
+    watchlist_company: str,
+    input_state: MarketSignalInputState,
+    top_n: int = 5,
+) -> list[dict]:
     """Return top normalized events that mention the company."""
     company_lower = watchlist_company.lower()
     related = [
         e
-        for e in state.normalized_events
+        for e in input_state.corpus.normalized_events
         if any(watchlist_company in c or company_lower in c.lower() for c in e.companies)
         or company_lower in e.canonical_title.lower()
     ]
@@ -93,12 +115,20 @@ def _find_related_events(watchlist_company: str, state: TechDailyState, top_n: i
     ]
 
 
+def _find_related_events(watchlist_company: str, state: TechDailyState, top_n: int = 5) -> list[dict]:
+    return _find_related_events_from_input(
+        watchlist_company,
+        _market_signal_input_from_state(state),
+        top_n=top_n,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Payload construction
 # ---------------------------------------------------------------------------
 
 
-def _build_macro_context(state: TechDailyState) -> dict:
+def _build_macro_context_from_input(input_state: MarketSignalInputState) -> dict:
     """Build a compact macro context dict from the pipeline's macro analyses."""
     macro_events = [
         {
@@ -108,7 +138,7 @@ def _build_macro_context(state: TechDailyState) -> dict:
             "severity": a.severity,
             "time_dimension": a.time_dimension,
         }
-        for a in state.macro_impact_analyses.values()
+        for a in input_state.analysis.macro_impact_analyses.values()
         if a.report_worthy
     ][:4]
 
@@ -119,7 +149,7 @@ def _build_macro_context(state: TechDailyState) -> dict:
             "summary": v.key_signal_summary,
             "classification": v.signal_classification,
         }
-        for k, v in state.topic_summaries.items()
+        for k, v in input_state.analysis.topic_summaries.items()
         if v.report_worthy
         and k
         in (
@@ -136,6 +166,10 @@ def _build_macro_context(state: TechDailyState) -> dict:
         "macro_events": macro_events,
         "tech_trends": tech_trends,
     }
+
+
+def _build_macro_context(state: TechDailyState) -> dict:
+    return _build_macro_context_from_input(_market_signal_input_from_state(state))
 
 
 def _build_ticker_payload(
@@ -292,6 +326,23 @@ def analyze_market_signals(
     config: dict,
     prompt_runner: PromptRunner | None = None,
 ) -> dict[str, MarketSignalAnalysis]:
+    return analyze_market_signals_from_input(
+        _market_signal_input_from_state(state),
+        market_data=market_data,
+        prior_signals=prior_signals,
+        config=config,
+        prompt_runner=prompt_runner,
+    )
+
+
+def analyze_market_signals_from_input(
+    input_state: MarketSignalInputState,
+    *,
+    market_data: dict | None,
+    prior_signals: dict[str, dict],
+    config: dict,
+    prompt_runner: PromptRunner | None = None,
+) -> dict[str, MarketSignalAnalysis]:
     """Run MarketSignalAgent for triggered tickers.
 
     Steps:
@@ -321,7 +372,7 @@ def analyze_market_signals(
     max_tickers = wl_settings.get("max_tickers_per_run", max_tickers)
 
     runner = prompt_runner or PromptRunner()
-    macro_context = _build_macro_context(state)
+    macro_context = _build_macro_context_from_input(input_state)
 
     # -----------------------------------------------------------------------
     # Identify triggered tickers
@@ -329,7 +380,7 @@ def analyze_market_signals(
     triggered: list[tuple[dict, Any, float]] = []  # (ticker_cfg, company_analysis, importance)
 
     for ticker_cfg in all_tickers:
-        company_analysis = _find_company_analysis(ticker_cfg["company"], state.company_analyses)
+        company_analysis = _find_company_analysis(ticker_cfg["company"], input_state.analysis.company_analyses)
         if only_on_event_day:
             if company_analysis is None:
                 continue
@@ -362,14 +413,14 @@ def analyze_market_signals(
     # -----------------------------------------------------------------------
     jobs: list[tuple[dict, dict, bool]] = []  # (ticker_cfg, payload, has_price_data)
     for ticker_cfg, company_analysis, _ in triggered:
-        related_events = _find_related_events(ticker_cfg["company"], state)
+        related_events = _find_related_events_from_input(ticker_cfg["company"], input_state)
         prior_signal = prior_signals.get(ticker_cfg["ticker"])
         payload = _build_ticker_payload(
             ticker_cfg=ticker_cfg,
             company_analysis=company_analysis,
             related_events=related_events,
             macro_context=macro_context,
-            run_date=state.run_date,
+            run_date=input_state.run_metadata.run_date,
             market_data=market_data,
             prior_signal=prior_signal,
         )

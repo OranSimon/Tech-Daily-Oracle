@@ -192,6 +192,28 @@ topic_keywords:
     - topological material
     - quantum material
     - advanced alloy
+topic_groups:
+  core_tech_topics:
+    - ai_models
+    - ai_agents
+    - embodied_ai_robotics
+    - ai_infrastructure
+    - semiconductors
+    - startups_unicorns
+    - papers_research
+  cross_domain_topics:
+    - science_breakthrough
+    - health_biotech
+    - astronomy_space
+    - materials_science
+    - global_events
+  high_priority_topics:
+    - ai_models
+    - embodied_ai_robotics
+    - ai_infrastructure
+    - semiconductors
+    - papers_research
+    - startups_unicorns
 company_keywords:
   Apple:
     - Apple

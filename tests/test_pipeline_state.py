@@ -72,6 +72,68 @@ def test_tech_daily_state_default_construction_remains_compatible() -> None:
     assert state.signal_level == "normal"
 
 
+def test_prediction_resolution_contract_preserves_existing_dict_shape() -> None:
+    from tech_daily.state.contracts import PredictionResolution
+
+    resolution = PredictionResolution(
+        resolved=True,
+        resolved_as="true",
+        resolution_reasoning="The observable criteria were met.",
+    )
+
+    assert resolution.to_persisted_dict() == {
+        "resolved": True,
+        "resolved_as": "true",
+        "resolution_reasoning": "The observable criteria were met.",
+    }
+
+
+def test_unresolved_prediction_resolution_contract_preserves_none_shape() -> None:
+    from tech_daily.state.contracts import PredictionResolution
+
+    resolution = PredictionResolution(resolved=False)
+
+    assert resolution.to_persisted_dict() == {
+        "resolved": False,
+        "resolved_as": None,
+        "resolution_reasoning": None,
+    }
+
+
+def test_prediction_signal_monitor_contract_preserves_existing_dict_shape() -> None:
+    from tech_daily.state.contracts import SignalToMonitor
+
+    signal = SignalToMonitor(
+        signal="orders",
+        threshold="increase",
+        meaning="demand",
+    )
+
+    assert signal.to_persisted_dict() == {
+        "signal": "orders",
+        "threshold": "increase",
+        "meaning": "demand",
+    }
+
+
+def test_market_signal_monitor_contract_preserves_existing_dict_shape() -> None:
+    from tech_daily.state.contracts import SignalToMonitor
+
+    signal = SignalToMonitor(
+        signal="Datacenter demand",
+        current="strong",
+        threshold="weakening",
+        meaning="Demand inflection",
+    )
+
+    assert signal.to_persisted_dict() == {
+        "signal": "Datacenter demand",
+        "current": "strong",
+        "threshold": "weakening",
+        "meaning": "Demand inflection",
+    }
+
+
 def test_typed_state_round_trip_preserves_core_values() -> None:
     from pipeline_state import (
         AnalysisState,
@@ -308,14 +370,21 @@ def test_typed_analyzer_prediction_and_report_action_paths_match_legacy(monkeypa
 
     monkeypatch.setattr(actions, "analyze_topics", lambda events: {"topics": events})
     monkeypatch.setattr(actions, "run_prediction_updates", lambda state: ["update"])
+    monkeypatch.setattr(actions, "run_prediction_updates_from_input", lambda input_state: ["update"])
     monkeypatch.setattr(actions, "generate_new_predictions", lambda state: ["new"])
+    monkeypatch.setattr(
+        actions,
+        "generate_new_predictions_from_input",
+        lambda input_state: (["new"], input_state.prediction.signal_level),
+    )
     monkeypatch.setattr(actions, "generate_daily_report", lambda state: "# Report\n")
+    monkeypatch.setattr(actions, "generate_daily_report_from_input", lambda input_state: "# Report\n")
     monkeypatch.setattr(actions, "load_last_signal_per_ticker", lambda: {"NVDA": {"ticker": "NVDA"}})
 
-    def fake_market(state, market_data, prior_signals, config):
+    def fake_market(input_state, *, market_data, prior_signals, config):
         return {
-            "state_run_date": state.run_date,
-            "event_count": len(state.normalized_events),
+            "state_run_date": input_state.run_metadata.run_date,
+            "event_count": len(input_state.corpus.normalized_events),
             "prior_signals": prior_signals,
             "market_data": market_data,
             "config": config,
@@ -349,7 +418,7 @@ def test_typed_analyzer_prediction_and_report_action_paths_match_legacy(monkeypa
 
 
 def test_daily_pipeline_uses_typed_state_helpers_for_shadowed_groups() -> None:
-    source = Path("scripts/daily_pipeline.py").read_text(encoding="utf-8")
+    source = Path("src/tech_daily/pipeline/daily.py").read_text(encoding="utf-8")
 
     for helper_name in [
         "apply_collection_state",
