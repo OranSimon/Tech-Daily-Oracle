@@ -153,8 +153,7 @@ def test_analyze_one_repo_accepts_fenced_json(tmp_path: Path) -> None:
 
 def test_analyze_one_repo_defaults_unknown_velocity_and_language(tmp_path: Path) -> None:
     response = (
-        VALID_GITHUB_PROJECT_JSON
-        .replace('"stars_today": 20', '"stars_today": null')
+        VALID_GITHUB_PROJECT_JSON.replace('"stars_today": 20', '"stars_today": null')
         .replace('"stars_weekly": 140', '"stars_weekly": null')
         .replace('"language": "Python"', '"language": null')
     )
