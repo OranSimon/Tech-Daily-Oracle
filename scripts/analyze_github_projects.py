@@ -79,6 +79,9 @@ def _analyze_one_repo(
     license_info = (details.get("license") or {}).get("spdx_id") or meta.get("license", "")
     description = details.get("description") or item.get("description", "")
     topics = details.get("topics") or meta.get("topics", [])
+    stars_today = meta.get("stars_today", meta.get("stars_daily", 0)) or 0
+    stars_weekly = meta.get("stars_weekly", 0) or 0
+    contributors_count = details.get("contributors_count") or meta.get("contributors_count", 0) or 0
 
     payload = {
         "repo": {
@@ -95,7 +98,16 @@ def _analyze_one_repo(
             "license": license_info,
             "topics": topics,
         },
+        "star_history": {
+            "stars_today": stars_today,
+            "stars_weekly": stars_weekly,
+            "stars_total": stars,
+        },
         "readme_excerpt": description[:500],
+        "topics": topics,
+        "contributors_count": contributors_count,
+        "open_issues": open_issues,
+        "license": license_info,
         # subscribers_count = people watching for notifications (genuine engagement).
         # watchers_count is a legacy alias for stargazers_count — do not use.
         # True contributor count requires a separate /contributors API call; skipped here.

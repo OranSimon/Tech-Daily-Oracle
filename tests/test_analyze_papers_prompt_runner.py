@@ -94,6 +94,21 @@ def test_analyze_one_paper_accepts_fenced_json(tmp_path: Path) -> None:
     assert analysis.related_companies == ["OpenAI"]
 
 
+def test_analyze_one_paper_defaults_null_technical_contribution(tmp_path: Path) -> None:
+    runner = _prompt_runner(
+        tmp_path,
+        VALID_PAPER_JSON.replace(
+            '"technical_contribution": "Introduces a fixture benchmark."',
+            '"technical_contribution": null',
+        ),
+    )
+
+    analysis = analyze_papers._analyze_one_paper(_event(), runner)
+
+    assert analysis is not None
+    assert analysis.technical_contribution == "Unspecified technical contribution."
+
+
 def test_analyze_one_paper_raises_prompt_runner_error_for_invalid_json(tmp_path: Path) -> None:
     runner = _prompt_runner(tmp_path, "not-json")
 

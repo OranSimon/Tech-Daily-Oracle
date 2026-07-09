@@ -10,5 +10,5 @@ openai>=1.30.0                 # OpenAI fallback and DeepSeek adapter (requires 
 google-generativeai>=0.8.0     # Gemini fallback (requires GEMINI_API_KEY or GOOGLE_API_KEY)
 
 # Market Signal — Phase 4/5 (install when enabling config.market_signal.live_data = true)
-# yfinance>=0.2.40             # Free Yahoo Finance: price history, options chains (no API key)
+yfinance>=0.2.40              # Free Yahoo Finance: price history, options chains (no API key)
 # fredapi>=3.1.0               # FRED macro series: rates, CPI, unemployment (free key at fred.stlouisfed.org)

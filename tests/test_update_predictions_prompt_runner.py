@@ -190,6 +190,22 @@ def test_prediction_updates_raise_prompt_runner_error_for_missing_required_field
     assert "probability_after" in exc_info.value.message
 
 
+def test_prediction_updates_default_missing_resolution_to_unresolved(tmp_path: Path) -> None:
+    response = VALID_UPDATE_JSON.replace(
+        ',\n    "resolution": {\n      "resolved": false,\n      "resolved_as": null,\n      "resolution_reasoning": null\n    }',
+        "",
+    )
+    runner = _prompt_runner(tmp_path, response, "prediction_update.md")
+
+    updates = update_predictions._run_prediction_update_batch(_state(), runner)
+
+    assert updates[0].resolution == {
+        "resolved": False,
+        "resolved_as": None,
+        "resolution_reasoning": None,
+    }
+
+
 def test_generate_new_predictions_accepts_fake_prompt_runner_plain_json(tmp_path: Path) -> None:
     runner = _prompt_runner(tmp_path, VALID_NEW_PREDICTION_JSON, "new_prediction.md")
     state = _state()
@@ -262,6 +278,18 @@ def test_generate_new_predictions_accepts_fenced_json(tmp_path: Path) -> None:
 
     assert predictions[0].prediction_id == "P20260702-1"
     assert predictions[0].signals_to_monitor[0]["signal"] == "usage"
+
+
+def test_generate_new_predictions_normalizes_percent_probability(tmp_path: Path) -> None:
+    runner = _prompt_runner(
+        tmp_path,
+        VALID_NEW_PREDICTION_JSON.replace('"probability": 0.55', '"probability": 55.0'),
+        "new_prediction.md",
+    )
+
+    predictions = update_predictions._generate_new_prediction_batch(_state(), runner)
+
+    assert predictions[0].probability == 0.55
 
 
 def test_generate_new_predictions_raises_prompt_runner_error_for_invalid_json(tmp_path: Path) -> None:

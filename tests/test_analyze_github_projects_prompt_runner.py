@@ -6,6 +6,7 @@ from typing import Any
 
 import analyze_github_projects
 import pytest
+from llm_schemas import GitHubProjectAnalysisResponse
 from prompt_runner import PromptRunner, PromptRunnerError
 from state import NormalizedEvent, ProjectAnalysis
 from test_prompt_runner import FakeLLMClient
@@ -148,6 +149,44 @@ def test_analyze_one_repo_accepts_fenced_json(tmp_path: Path) -> None:
     assert name == "oransimon/fixture-repo"
     assert analysis.repo == "oransimon/fixture-repo"
     assert analysis.topic_tags == ["developer_tools"]
+
+
+def test_analyze_one_repo_defaults_unknown_velocity_and_language(tmp_path: Path) -> None:
+    response = (
+        VALID_GITHUB_PROJECT_JSON
+        .replace('"stars_today": 20', '"stars_today": null')
+        .replace('"stars_weekly": 140', '"stars_weekly": null')
+        .replace('"language": "Python"', '"language": null')
+    )
+    runner = _prompt_runner(tmp_path, response)
+
+    result = analyze_github_projects._analyze_one_repo(_repo_item(), runner, repo_count=1, top_n=3)
+
+    assert result is not None
+    _, _, analysis = result
+    assert analysis.language == "Unknown"
+    assert analysis.stars_today == 0
+    assert analysis.stars_weekly == 0
+
+
+def test_analyze_one_repo_payload_includes_prompt_contract_fields() -> None:
+    class CapturingRunner:
+        payload: dict[str, Any] | None = None
+
+        def run_json(self, **kwargs: object) -> GitHubProjectAnalysisResponse:
+            assert isinstance(kwargs["payload"], str)
+            self.payload = __import__("json").loads(kwargs["payload"])
+            return GitHubProjectAnalysisResponse.model_validate(__import__("json").loads(VALID_GITHUB_PROJECT_JSON))
+
+    runner = CapturingRunner()
+
+    analyze_github_projects._analyze_one_repo(_repo_item(), runner, repo_count=1, top_n=3)
+
+    assert runner.payload is not None
+    assert "star_history" in runner.payload
+    assert "contributors_count" in runner.payload
+    assert "open_issues" in runner.payload
+    assert "topics" in runner.payload
 
 
 def test_analyze_one_repo_raises_prompt_runner_error_for_invalid_json(tmp_path: Path) -> None:

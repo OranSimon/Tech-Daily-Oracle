@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, Field, RootModel, field_validator, model_validator
 
 __all__ = [
     "MarketSignalConfidence",
@@ -38,6 +38,21 @@ PredictionImpact = Literal[
     "resolves_false",
     "needs_more_data",
 ]
+
+
+def _normalize_probability(value: Any) -> Any:
+    """Accept either 0.55 or 55.0 from LLM JSON, then validate as 0.0-1.0."""
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.endswith("%"):
+            stripped = stripped[:-1].strip()
+        try:
+            value = float(stripped)
+        except ValueError:
+            return value
+    if isinstance(value, int | float) and value >= 10 and value <= 100:
+        return value / 100
+    return value
 
 
 class TopicSummaryResponse(BaseModel):
@@ -97,6 +112,13 @@ class PaperAnalysisResponse(BaseModel):
     hype_risk: str
     hype_risk_reason: str | None = None
 
+    @field_validator("technical_contribution", mode="before")
+    @classmethod
+    def default_technical_contribution(cls, value: Any) -> str:
+        if value is None or value == "":
+            return "Unspecified technical contribution."
+        return value
+
 
 class GitHubProjectAnalysisResponse(BaseModel):
     repo: str
@@ -121,23 +143,59 @@ class GitHubProjectAnalysisResponse(BaseModel):
     hype_risk: str
     signals_to_monitor: list[str]
 
+    @field_validator("stars_today", "stars_weekly", mode="before")
+    @classmethod
+    def default_missing_star_velocity(cls, value: Any) -> int:
+        if value is None or value == "":
+            return 0
+        return value
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def default_missing_language(cls, value: Any) -> str:
+        if value is None or value == "":
+            return "Unknown"
+        return value
+
 
 class MacroImpactAnalysisResponse(BaseModel):
     event_id: str
-    event_title: str
-    event_type: str
+    event_title: str = ""
+    event_type: str = ""
     report_worthy: bool
     exclusion_reason: str | None = None
-    transmission_path: str
-    affected_companies: list[str]
-    affected_sectors: list[str]
-    affected_directions: list[str]
-    time_dimension: str
-    time_reasoning: str
-    severity: str
-    confidence: str
-    prediction_impacts: list[dict[str, str]]
-    report_snippet: str
+    transmission_path: str = ""
+    affected_companies: list[str] = Field(default_factory=list)
+    affected_sectors: list[str] = Field(default_factory=list)
+    affected_directions: list[str] = Field(default_factory=list)
+    time_dimension: str = ""
+    time_reasoning: str = ""
+    severity: str = ""
+    confidence: str = ""
+    prediction_impacts: list[dict[str, str]] = Field(default_factory=list)
+    report_snippet: str = ""
+
+    @model_validator(mode="after")
+    def require_analysis_fields_when_report_worthy(self) -> MacroImpactAnalysisResponse:
+        if not self.report_worthy:
+            return self
+        missing = [
+            field_name
+            for field_name in (
+                "event_title",
+                "event_type",
+                "transmission_path",
+                "time_dimension",
+                "time_reasoning",
+                "severity",
+                "confidence",
+                "report_snippet",
+            )
+            if not getattr(self, field_name)
+        ]
+        if missing:
+            raise ValueError(f"report_worthy macro analysis missing fields: {', '.join(missing)}")
+        return self
 
 
 class SocialSignalAnalysisResponse(BaseModel):
@@ -201,7 +259,18 @@ class PredictionUpdateResponse(BaseModel):
     probability_after: float = Field(ge=0.0, le=1.0)
     reasoning: str
     source_event_ids: list[str]
-    resolution: dict[str, Any]
+    resolution: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "resolved": False,
+            "resolved_as": None,
+            "resolution_reasoning": None,
+        }
+    )
+
+    @field_validator("probability_before", "probability_after", mode="before")
+    @classmethod
+    def normalize_update_probability(cls, value: Any) -> Any:
+        return _normalize_probability(value)
 
 
 class PredictionUpdatesResponse(RootModel[list[PredictionUpdateResponse]]):
@@ -222,6 +291,11 @@ class NewPredictionResponse(BaseModel):
     falsification_condition: str
     signals_to_monitor: list[dict[str, str]]
     confidence: NewPredictionConfidence
+
+    @field_validator("probability", mode="before")
+    @classmethod
+    def normalize_prediction_probability(cls, value: Any) -> Any:
+        return _normalize_probability(value)
 
 
 class NewPredictionsResponse(RootModel[list[NewPredictionResponse]]):

@@ -33,7 +33,7 @@ You will receive:
 Every prediction MUST include:
 1. Specific, falsifiable statement
 2. Time horizon (specific: "by YYYY-MM", "within N months", "before [event]")
-3. Probability (0–100%)
+3. Probability as a decimal from 0.0 to 1.0 (for example, use `0.65`, not `65`)
 4. Supporting evidence (what signals today support this)
 5. Resolution criteria (how will we know if this is true or false)
 6. Falsification condition (single event that would disprove this)
@@ -53,7 +53,7 @@ Output a JSON array of new predictions:
     "companies": ["string"],
     "time_horizon": "string — e.g. '3 months', 'by 2026-09', 'before NeurIPS 2026'",
     "horizon_date": "YYYY-MM-DD",
-    "probability": 0.0,
+    "probability": 0.65,
     "evidence": "string — what signals support this prediction",
     "resolution_criteria": "string — how this will be judged true or false",
     "falsification_condition": "string — single event that disproves this",
@@ -73,9 +73,9 @@ Output a JSON array of new predictions:
 ## Quality Rules
 
 - Avoid vague predictions ("AI will improve") — must be specific and verifiable
-- Avoid trivially certain predictions (>90% probability before evidence) — these are not useful
-- Avoid trivially impossible predictions (<10% probability) — these are not useful
-- Ideal probability range: 25–75% for most predictions
+- Avoid trivially certain predictions (>0.90 probability before evidence) — these are not useful
+- Avoid trivially impossible predictions (<0.10 probability) — these are not useful
+- Ideal probability range: 0.25–0.75 for most predictions
 - Every prediction must be resolvable: someone must be able to check in the future whether it is true or false
 - Do not duplicate existing open predictions
 - Prioritize predictions that, if resolved, would update our understanding of important trends

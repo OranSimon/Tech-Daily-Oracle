@@ -120,6 +120,23 @@ def test_analyze_one_macro_event_accepts_fenced_json(tmp_path: Path) -> None:
     assert analysis.report_snippet == "Fixture macro impact snippet."
 
 
+def test_analyze_one_macro_event_allows_filtered_response_without_analysis_fields(tmp_path: Path) -> None:
+    runner = _prompt_runner(
+        tmp_path,
+        """{
+  "event_id": "event-2026-07-02-macro",
+  "event_title": "New chip export controls target AI accelerators",
+  "event_type": "other",
+  "report_worthy": false,
+  "exclusion_reason": "Fixture event is not actionable for technology companies."
+}""",
+    )
+
+    analysis = analyze_macro_impact._analyze_one_macro_event(_event(), ["Nvidia"], [], runner)
+
+    assert analysis is None
+
+
 def test_analyze_one_macro_event_raises_prompt_runner_error_for_invalid_json(tmp_path: Path) -> None:
     runner = _prompt_runner(tmp_path, "not-json")
 
