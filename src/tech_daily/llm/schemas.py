@@ -117,7 +117,7 @@ class PaperAnalysisResponse(BaseModel):
     def default_technical_contribution(cls, value: Any) -> str:
         if value is None or value == "":
             return "Unspecified technical contribution."
-        return value
+        return str(value)
 
 
 class GitHubProjectAnalysisResponse(BaseModel):
@@ -148,14 +148,14 @@ class GitHubProjectAnalysisResponse(BaseModel):
     def default_missing_star_velocity(cls, value: Any) -> int:
         if value is None or value == "":
             return 0
-        return value
+        return int(value)
 
     @field_validator("language", mode="before")
     @classmethod
     def default_missing_language(cls, value: Any) -> str:
         if value is None or value == "":
             return "Unknown"
-        return value
+        return str(value)
 
 
 class MacroImpactAnalysisResponse(BaseModel):
