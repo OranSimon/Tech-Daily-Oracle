@@ -161,9 +161,12 @@ def build_daily_step_definitions(runtime: DailyPipelineRuntime) -> list[DailySte
         ),
         DailyStepDefinition(
             policy=get_daily_step_policy(StepId.ANALYZE_GITHUB_PROJECTS),
-            action=lambda rt: actions.analyze_github_projects_state_action(pipeline_state.get_corpus_state(rt.state)),
-            fallback={},
-            record_count=len,
+            action=lambda rt: actions.analyze_github_projects_state_action(
+                pipeline_state.get_corpus_state(rt.state),
+                rt.trending_snapshot,
+            ),
+            fallback=None,
+            record_count=lambda outcome: len(outcome) if outcome is not None else 0,
             failure_message="github analysis failed",
             after_result=_after_analyze_github_projects,
         ),
@@ -413,11 +416,20 @@ def _after_analyze_papers(runtime: DailyPipelineRuntime, result: PipelineStepRes
 def _after_analyze_github_projects(runtime: DailyPipelineRuntime, result: PipelineStepResult) -> None:
     pipeline_state = _state_module()
 
-    pipeline_state.apply_github_project_analysis_result(runtime.state, result.value)
     if not result.success:
         error = result.error or "unknown error"
+        pipeline_state.apply_github_project_analysis_result(runtime.state, result.value, error=error)
         print(f"  [ERROR] GitHub analysis failed: {error}")
         pipeline_state.append_confidence_flag(runtime.state, f"GitHub analysis error: {error}")
+        return
+
+    pipeline_state.apply_github_project_analysis_result(runtime.state, result.value)
+    if getattr(result.value, "reason", "") == "analysis_failed":
+        candidate_count = result.value.candidate_count
+        pipeline_state.append_confidence_flag(
+            runtime.state,
+            f"GitHub analysis failed for all {candidate_count} candidates",
+        )
 
 
 def _after_load_trending_history(runtime: DailyPipelineRuntime, result: PipelineStepResult) -> None:

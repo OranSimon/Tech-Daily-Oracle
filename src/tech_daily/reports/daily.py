@@ -6,6 +6,7 @@ import dataclasses
 import importlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +21,18 @@ if TYPE_CHECKING:
 ROOT_DIR = Path(__file__).resolve().parents[3]
 ROOT = str(ROOT_DIR)
 DEFAULT_DAILY_MODEL = "claude-sonnet-4-6"
+
+_GITHUB_SECTION_PATTERN = re.compile(
+    r"^## 5\. GitHub Trending: Top 3 High-Signal Repos\s*$.*?(?=^## 6\. Papers & Research Frontiers\s*$)",
+    flags=re.MULTILINE | re.DOTALL,
+)
+
+_GITHUB_EMPTY_SECTION_COPY = {
+    "source_empty": "本期未获取到可分析的 GitHub 趋势候选，跳过此节。",
+    "all_candidates_filtered": "本期 GitHub 趋势候选均未通过质量过滤，跳过此节。",
+    "analysis_failed": "本期 GitHub 项目分析失败，结果不可用，跳过此节。",
+    "no_watch_verdict": "本期 GitHub 候选仅达到 Track/Skip 级别，暂无 Watch 项目，跳过此节。",
+}
 
 __all__ = [
     "Any",
@@ -82,6 +95,27 @@ def _safe_dict(obj: Any) -> Any:
     return obj
 
 
+def _github_report_status(input_state: ReportInputState, watch_projects: list[Any]) -> dict[str, Any]:
+    status = dict(input_state.analysis.github_project_analysis_status)
+    if watch_projects:
+        status["reason"] = "watch_projects_available"
+    elif input_state.analysis.github_project_analyses:
+        status["reason"] = "no_watch_verdict"
+    else:
+        status.setdefault("reason", "source_empty")
+    return status
+
+
+def _replace_empty_github_section(report: str, status: dict[str, Any]) -> str:
+    reason = status.get("reason", "source_empty")
+    if reason == "watch_projects_available":
+        return report
+
+    copy = _GITHUB_EMPTY_SECTION_COPY.get(reason, _GITHUB_EMPTY_SECTION_COPY["source_empty"])
+    replacement = f"## 5. GitHub Trending: Top 3 High-Signal Repos\n\n{copy}\n\n"
+    return _GITHUB_SECTION_PATTERN.sub(replacement, report, count=1)
+
+
 def _build_report_payload(state: TechDailyState) -> dict[str, Any]:
     return build_daily_report_payload_from_input(ReportInputState.from_tech_daily_state(state))
 
@@ -102,6 +136,7 @@ def build_daily_report_payload_from_input(input_state: ReportInputState) -> dict
     top_github = [
         verdict for verdict in input_state.analysis.github_project_analyses.values() if verdict.verdict == "Watch"
     ][:3]
+    github_status = _github_report_status(input_state, top_github)
 
     sig_companies = {
         key: value
@@ -118,6 +153,7 @@ def build_daily_report_payload_from_input(input_state: ReportInputState) -> dict
         "company_analyses": {key: _safe_dict(value) for key, value in sig_companies.items()},
         "paper_analyses": [_safe_dict(paper) for paper in sorted_papers[:8] if paper.report_worthy],
         "github_project_analyses": [_safe_dict(project) for project in top_github],
+        "github_project_analysis_status": github_status,
         "social_signal_analyses": {
             key: _safe_dict(value)
             for key, value in input_state.analysis.social_signal_analyses.items()
@@ -182,6 +218,7 @@ def generate_daily_report_from_input(
         max_tokens=max_tokens,
         cache_system=True,
     )
+    report = _replace_empty_github_section(report, payload["github_project_analysis_status"])
 
     trending_analysis = input_state.analysis.trending_analysis
     if trending_analysis is not None and trending_analysis.report_section:

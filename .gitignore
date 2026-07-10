@@ -19,4 +19,5 @@ node_modules/
 # Local assistant/tooling scratch files.
 .claude/
 .superpowers/
+.worktrees/
 docs/superpowers/

@@ -7,7 +7,7 @@ import storage
 from state import TechDailyState
 
 from tech_daily.pipeline import actions
-from tech_daily.pipeline.state import ReportInputState
+from tech_daily.pipeline.state import CorpusState, ReportInputState
 from tech_daily.runtime.run_context import RunContext
 from tech_daily.storage.context import StorageContext
 
@@ -165,6 +165,25 @@ def test_generate_daily_report_action_surfaces_report_errors(monkeypatch) -> Non
 
     with pytest.raises(RuntimeError, match="report unavailable"):
         actions.generate_daily_report_action(state)
+
+
+def test_github_analysis_state_action_receives_snapshot(monkeypatch) -> None:
+    corpus = CorpusState(normalized_events=[])
+    snapshot = object()
+    expected = object()
+    captured: dict[str, object] = {}
+
+    def fake_analyze(events, trending_snapshot=None):
+        captured["events"] = events
+        captured["snapshot"] = trending_snapshot
+        return expected
+
+    monkeypatch.setattr(actions, "analyze_github_projects", fake_analyze)
+
+    result = actions.analyze_github_projects_state_action(corpus, snapshot)
+
+    assert result is expected
+    assert captured == {"events": [], "snapshot": snapshot}
 
 
 def test_generate_daily_report_input_action_uses_typed_input_boundary(monkeypatch) -> None:

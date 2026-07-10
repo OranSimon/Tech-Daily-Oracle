@@ -5,6 +5,7 @@ from pathlib import Path
 
 import daily_step_actions as actions
 import storage
+from analyze_github_projects import GitHubProjectAnalysisOutcome
 from collectors.telemetry import CollectorRunResult, CollectorRunStatus
 from pipeline_state import ReportInputState
 from state import (
@@ -259,7 +260,7 @@ def _run_daily_with_fakes(
     monkeypatch.setattr(
         actions,
         "analyze_github_projects",
-        analyze_github_projects_impl or (lambda normalized: {}),
+        analyze_github_projects_impl or (lambda normalized, trending_snapshot=None: {}),
     )
     monkeypatch.setattr(actions, "analyze_trending", analyze_trending_impl or (lambda snapshot, history, top_n: None))
     monkeypatch.setattr(actions, "analyze_social_signals", analyze_social_signals_impl or (lambda normalized: {}))
@@ -368,7 +369,7 @@ def test_company_paper_and_github_analysis_success_update_state(monkeypatch, tmp
         tmp_path,
         analyze_companies_impl=lambda events: {"OpenAI": company},
         analyze_papers_impl=lambda events: {"paper-fixture": paper},
-        analyze_github_projects_impl=lambda events: {"example/repo": project},
+        analyze_github_projects_impl=lambda events, trending_snapshot=None: {"example/repo": project},
     )
     output = capsys.readouterr().out
 
@@ -388,7 +389,7 @@ def test_company_paper_and_github_analysis_failures_preserve_fallbacks(monkeypat
     def fail_papers(events: list[NormalizedEvent]):
         raise RuntimeError("paper unavailable")
 
-    def fail_github(events: list[NormalizedEvent]):
+    def fail_github(events: list[NormalizedEvent], trending_snapshot=None):
         raise RuntimeError("github unavailable")
 
     _, state = _run_daily_with_fakes(
@@ -403,6 +404,8 @@ def test_company_paper_and_github_analysis_failures_preserve_fallbacks(monkeypat
     assert state.analysis.company_analyses == {}
     assert state.analysis.paper_analyses == {}
     assert state.analysis.github_project_analyses == {}
+    assert state.analysis.github_project_analysis_status["reason"] == "analysis_failed"
+    assert state.analysis.github_project_analysis_status["failures"] == ["github unavailable"]
     assert state.diagnostics.confidence_flags == [
         "Company analysis error: company unavailable",
         "Paper analysis error: paper unavailable",
@@ -427,7 +430,7 @@ def test_company_paper_and_github_empty_input_passes_through(monkeypatch, tmp_pa
         calls["papers"] = events
         return {}
 
-    def github(events: list[NormalizedEvent]):
+    def github(events: list[NormalizedEvent], trending_snapshot=None):
         calls["github"] = events
         return {}
 
@@ -444,6 +447,37 @@ def test_company_paper_and_github_empty_input_passes_through(monkeypatch, tmp_pa
     assert state.analysis.company_analyses == {}
     assert state.analysis.paper_analyses == {}
     assert state.analysis.github_project_analyses == {}
+
+
+def test_github_analysis_receives_runtime_snapshot_and_persists_failure_status(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    snapshot = object()
+    captured: dict[str, object] = {}
+
+    def github(events: list[NormalizedEvent], trending_snapshot=None) -> GitHubProjectAnalysisOutcome:
+        captured["events"] = events
+        captured["snapshot"] = trending_snapshot
+        return GitHubProjectAnalysisOutcome(
+            source="ossinsight",
+            candidate_count=1,
+            failed_count=1,
+            failures=["owner/repo: json_parse_error: bad JSON"],
+        )
+
+    _, state = _run_daily_with_fakes(
+        monkeypatch,
+        tmp_path,
+        collect_trending_snapshot_impl=lambda *args, **kwargs: snapshot,
+        analyze_github_projects_impl=github,
+    )
+
+    assert captured["events"] == [_normalized_event()]
+    assert captured["snapshot"] is snapshot
+    assert state.analysis.github_project_analyses == {}
+    assert state.analysis.github_project_analysis_status["reason"] == "analysis_failed"
+    assert state.diagnostics.confidence_flags == ["GitHub analysis failed for all 1 candidates"]
 
 
 def test_social_macro_trending_and_market_analysis_success_update_state(monkeypatch, tmp_path: Path, capsys) -> None:

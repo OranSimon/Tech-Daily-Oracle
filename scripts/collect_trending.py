@@ -24,7 +24,6 @@ import re
 from datetime import date, timedelta
 
 import httpx
-
 from state import TrendingItem, TrendingSnapshot
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,7 +61,6 @@ async def _fetch_ossinsight(
         params["language"] = language
 
     # Retry OSSInsight up to 3 times with exponential backoff for transient 5xx errors
-    last_err: Exception | None = None
     for attempt in range(3):
         try:
             resp = await client.get(
@@ -100,7 +98,6 @@ async def _fetch_ossinsight(
                 return items
             break  # 200 OK with empty rows — don't retry, just fall through to fallback
         except Exception as e:
-            last_err = e
             if attempt < 2:
                 wait_s = 2 ** attempt   # 1s, then 2s
                 print(f"  [Trending] OSSInsight {period} attempt {attempt + 1}/3 failed ({e}); retrying in {wait_s}s")
@@ -378,6 +375,7 @@ async def _fetch_hf_models(
 async def _collect_async(period: str, run_date: str, config: dict) -> TrendingSnapshot:
     tcfg = config.get("trending", {})
     top_n: int = tcfg.get("top_n", 5)
+    github_candidate_pool_size: int = tcfg.get("github_candidate_pool_size", 25)
     hf_token: str | None = os.environ.get("HF_TOKEN")
     languages: list[str] = (tcfg.get("ossinsight", {}) or {}).get("languages", []) or []
     lang = languages[0] if languages else ""
@@ -394,7 +392,7 @@ async def _collect_async(period: str, run_date: str, config: dict) -> TrendingSn
         headers={"User-Agent": "TechDailyOracle/1.0"},
         follow_redirects=True,
     ) as client:
-        gh_task = _fetch_ossinsight(client, period, lang, top_n * 2)
+        gh_task = _fetch_ossinsight(client, period, lang, max(top_n * 2, github_candidate_pool_size))
         papers_task = _fetch_hf_papers_rolling(client, dates, hf_token, top_n * 2, period)
         models_task = _fetch_hf_models(client, hf_token, top_n * 2, period)
 
@@ -413,7 +411,7 @@ async def _collect_async(period: str, run_date: str, config: dict) -> TrendingSn
     return TrendingSnapshot(
         snapshot_date=run_date,
         period=period,
-        github_items=github_items[:top_n],
+        github_items=github_items[:github_candidate_pool_size],
         hf_paper_items=hf_paper_items[:top_n],
         hf_model_items=hf_model_items[:top_n],
     )

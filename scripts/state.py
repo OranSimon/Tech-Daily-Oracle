@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import date
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Raw event (before normalization)
@@ -319,6 +317,19 @@ class Report:
 # Main blackboard
 # ---------------------------------------------------------------------------
 
+
+def default_github_project_analysis_status() -> dict[str, Any]:
+    return {
+        "reason": "source_empty",
+        "source": "none",
+        "candidate_count": 0,
+        "analyzed_count": 0,
+        "filtered_count": 0,
+        "failed_count": 0,
+        "failures": [],
+    }
+
+
 @dataclass
 class TechDailyState:
     run_id: str
@@ -334,6 +345,7 @@ class TechDailyState:
     company_analyses: dict[str, CompanyAnalysis] = field(default_factory=dict)
     paper_analyses: dict[str, PaperAnalysis] = field(default_factory=dict)
     github_project_analyses: dict[str, ProjectAnalysis] = field(default_factory=dict)
+    github_project_analysis_status: dict[str, Any] = field(default_factory=default_github_project_analysis_status)
     social_signal_analyses: dict[str, SocialSignalAnalysis] = field(default_factory=dict)
     macro_impact_analyses: dict[str, MacroImpactAnalysis] = field(default_factory=dict)
 
@@ -362,7 +374,7 @@ class TechDailyState:
     trending_analysis: Any = field(default=None)  # TrendingAnalysis | None
 
     # Market signal analyses (Phase 4+)
-    market_signal_analyses: dict[str, "MarketSignalAnalysis"] = field(default_factory=dict)
+    market_signal_analyses: dict[str, MarketSignalAnalysis] = field(default_factory=dict)
 
     # Final output
     final_report: str = ""

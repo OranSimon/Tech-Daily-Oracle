@@ -5,9 +5,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 import collect_sources
+import collect_trending
 import pytest
 from collectors import arxiv, github, hackernews, huggingface, rss, web_search
 from collectors.telemetry import CollectorWarning
+from state import TrendingItem
 
 
 class FakeResponse:
@@ -252,3 +254,59 @@ def test_collect_sources_facade_can_run_with_all_sources_disabled() -> None:
     )
 
     assert events == []
+
+
+def test_daily_snapshot_retains_github_analysis_pool(monkeypatch: pytest.MonkeyPatch) -> None:
+    def item(index: int, item_type: str, source: str) -> TrendingItem:
+        return TrendingItem(
+            item_id=f"owner/item-{index}",
+            item_type=item_type,
+            source=source,
+            title=f"item-{index}",
+            url=f"https://example.com/item-{index}",
+            description="fixture",
+            period="daily",
+            rank=index + 1,
+            velocity_score=float(100 - index),
+            language="Python",
+            topics=[],
+            snapshot_date="",
+            extra={},
+        )
+
+    async def fake_github(client: object, period: str, language: str, top_n: int) -> list[TrendingItem]:
+        assert top_n >= 25
+        return [item(index, "github_repo", "ossinsight") for index in range(30)]
+
+    async def fake_papers(
+        client: object,
+        dates: list[str],
+        hf_token: str | None,
+        top_n: int,
+        period: str,
+    ) -> list[TrendingItem]:
+        return [item(index, "hf_paper", "huggingface_papers") for index in range(10)]
+
+    async def fake_models(
+        client: object,
+        hf_token: str | None,
+        top_n: int,
+        period: str,
+    ) -> list[TrendingItem]:
+        return [item(index, "hf_model", "huggingface_models") for index in range(10)]
+
+    monkeypatch.setattr(collect_trending, "_fetch_ossinsight", fake_github)
+    monkeypatch.setattr(collect_trending, "_fetch_hf_papers_rolling", fake_papers)
+    monkeypatch.setattr(collect_trending, "_fetch_hf_models", fake_models)
+
+    snapshot = asyncio.run(
+        collect_trending._collect_async(
+            "daily",
+            "2026-07-02",
+            {"trending": {"top_n": 5, "github_candidate_pool_size": 25}},
+        )
+    )
+
+    assert len(snapshot.github_items) == 25
+    assert len(snapshot.hf_paper_items) == 5
+    assert len(snapshot.hf_model_items) == 5

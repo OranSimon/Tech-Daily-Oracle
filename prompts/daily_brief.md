@@ -55,10 +55,9 @@ Skip sections with no signal today.]
 
 ## 5. GitHub Trending: Top 3 High-Signal Repos
 
-**CRITICAL DATA-INTEGRITY RULE FOR THIS SECTION:**
-- If `github_project_analyses` is **empty** (no pre-analyzed repos in input data), write **only** one line:
-  > 本期 GitHub 趋势数据未通过质量过滤（OSSInsight 数据缺失或返回的均为长期 mega-repo），跳过此节。趋势榜单详见报告末尾的 🔥 趋势榜单 — 今日 一节。
-  Then move to section 6. **Do NOT invent repos from prose mentions elsewhere in the input.** Do not reconstruct entries from Hacker News posts or RSS items — they lack the structured star/fork/license fields and produce misleading analyses.
+Data integrity for this section:
+- Use only repositories present in `github_project_analyses`. Do not invent repositories from prose mentions, Hacker News posts, or RSS items.
+- If `github_project_analyses` is empty, leave the section body empty and move to section 6. The application renders the appropriate empty-state explanation.
 - If `github_project_analyses` has 1-3 entries, write entries only for those repos, using their actual data fields. Do not pad with prose-derived projects.
 - If 1-2 entries (not 3), add the line "**Low-signal day for GitHub.**" after them.
 

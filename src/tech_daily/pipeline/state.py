@@ -237,6 +237,7 @@ class AnalysisState:
     company_analyses: dict[str, CompanyAnalysis] = field(default_factory=dict)
     paper_analyses: dict[str, PaperAnalysis] = field(default_factory=dict)
     github_project_analyses: dict[str, ProjectAnalysis] = field(default_factory=dict)
+    github_project_analysis_status: dict[str, Any] = field(default_factory=dict)
     social_signal_analyses: dict[str, SocialSignalAnalysis] = field(default_factory=dict)
     macro_impact_analyses: dict[str, MacroImpactAnalysis] = field(default_factory=dict)
     trending_analysis: Any = None
@@ -249,6 +250,7 @@ class AnalysisState:
             company_analyses=state.company_analyses,
             paper_analyses=state.paper_analyses,
             github_project_analyses=state.github_project_analyses,
+            github_project_analysis_status=state.github_project_analysis_status,
             social_signal_analyses=state.social_signal_analyses,
             macro_impact_analyses=state.macro_impact_analyses,
             trending_analysis=state.trending_analysis,
@@ -260,6 +262,7 @@ class AnalysisState:
         state.company_analyses = self.company_analyses
         state.paper_analyses = self.paper_analyses
         state.github_project_analyses = self.github_project_analyses
+        state.github_project_analysis_status = self.github_project_analysis_status
         state.social_signal_analyses = self.social_signal_analyses
         state.macro_impact_analyses = self.macro_impact_analyses
         state.trending_analysis = self.trending_analysis
@@ -540,9 +543,52 @@ def apply_paper_analysis_result(state: TechDailyState, result: dict[str, PaperAn
     return analysis_state
 
 
-def apply_github_project_analysis_result(state: TechDailyState, result: dict[str, ProjectAnalysis]) -> AnalysisState:
+def apply_github_project_analysis_result(
+    state: TechDailyState,
+    result: Any,
+    *,
+    error: str | None = None,
+) -> AnalysisState:
     analysis_state = AnalysisState.from_tech_daily_state(state)
-    analysis_state.github_project_analyses = result
+    analyses: dict[str, ProjectAnalysis]
+    if error is not None:
+        analyses = {}
+        status = {
+            "reason": "analysis_failed",
+            "source": "none",
+            "candidate_count": 0,
+            "analyzed_count": 0,
+            "filtered_count": 0,
+            "failed_count": 0,
+            "failures": [error],
+        }
+    elif result is None:
+        analyses = {}
+        status = {
+            "reason": "source_empty",
+            "source": "none",
+            "candidate_count": 0,
+            "analyzed_count": 0,
+            "filtered_count": 0,
+            "failed_count": 0,
+            "failures": [],
+        }
+    elif hasattr(result, "analyses") and hasattr(result, "to_status_dict"):
+        analyses = dict(result.analyses)
+        status = result.to_status_dict()
+    else:
+        analyses = dict(result)
+        status = {
+            "reason": "accepted_projects_available" if analyses else "source_empty",
+            "source": "legacy",
+            "candidate_count": len(analyses),
+            "analyzed_count": len(analyses),
+            "filtered_count": 0,
+            "failed_count": 0,
+            "failures": [],
+        }
+    analysis_state.github_project_analyses = analyses
+    analysis_state.github_project_analysis_status = status
     analysis_state.apply_to_tech_daily_state(state)
     return analysis_state
 

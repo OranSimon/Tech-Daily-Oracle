@@ -51,6 +51,15 @@ def test_tech_daily_state_default_construction_remains_compatible() -> None:
     assert state.company_analyses == {}
     assert state.paper_analyses == {}
     assert state.github_project_analyses == {}
+    assert state.github_project_analysis_status == {
+        "reason": "source_empty",
+        "source": "none",
+        "candidate_count": 0,
+        "analyzed_count": 0,
+        "filtered_count": 0,
+        "failed_count": 0,
+        "failures": [],
+    }
     assert state.social_signal_analyses == {}
     assert state.macro_impact_analyses == {}
     assert state.company_mentions == {}
@@ -159,6 +168,15 @@ def test_typed_state_round_trip_preserves_core_values() -> None:
     state.company_analyses = {"OpenAI": object()}
     state.paper_analyses = {"paper": object()}
     state.github_project_analyses = {"example/repo": object()}
+    state.github_project_analysis_status = {
+        "reason": "accepted_projects_available",
+        "source": "ossinsight",
+        "candidate_count": 4,
+        "analyzed_count": 4,
+        "filtered_count": 3,
+        "failed_count": 0,
+        "failures": [],
+    }
     state.social_signal_analyses = {"social": object()}
     state.macro_impact_analyses = {"macro": object()}
     state.market_signal_analyses = {"NVDA": object()}
@@ -203,6 +221,7 @@ def test_typed_state_round_trip_preserves_core_values() -> None:
     assert target.company_analyses == state.company_analyses
     assert target.paper_analyses == state.paper_analyses
     assert target.github_project_analyses == state.github_project_analyses
+    assert target.github_project_analysis_status == state.github_project_analysis_status
     assert target.social_signal_analyses == state.social_signal_analyses
     assert target.macro_impact_analyses == state.macro_impact_analyses
     assert target.market_signal_analyses == state.market_signal_analyses

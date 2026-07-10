@@ -51,6 +51,7 @@ ai_providers:
 trending:
   enabled: true
   top_n: 5                   # top N items per source per period shown in reports
+  github_candidate_pool_size: 25  # structured GitHub candidates retained for quality analysis
 
   ossinsight:
     # OSSInsight REST API — public endpoint, no auth required for trending

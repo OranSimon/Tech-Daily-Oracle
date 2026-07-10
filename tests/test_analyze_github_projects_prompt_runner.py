@@ -8,7 +8,7 @@ import analyze_github_projects
 import pytest
 from llm_schemas import GitHubProjectAnalysisResponse
 from prompt_runner import PromptRunner, PromptRunnerError
-from state import NormalizedEvent, ProjectAnalysis
+from state import NormalizedEvent, ProjectAnalysis, TrendingItem, TrendingSnapshot
 from test_prompt_runner import FakeLLMClient
 
 
@@ -72,6 +72,34 @@ def _repo_item() -> dict[str, Any]:
     }
 
 
+def _trending_item(*, velocity_score: float = 27) -> TrendingItem:
+    return TrendingItem(
+        item_id="snapshot-owner/snapshot-repo",
+        item_type="github_repo",
+        source="ossinsight",
+        title="snapshot-owner/snapshot-repo",
+        url="https://github.com/snapshot-owner/snapshot-repo",
+        description="Snapshot repo for GitHub analysis.",
+        period="daily",
+        rank=1,
+        velocity_score=velocity_score,
+        language="Rust",
+        topics=["developer-tools"],
+        snapshot_date="2026-07-02",
+        extra={"forks": 9, "total_score": 42},
+    )
+
+
+def _trending_snapshot(*items: TrendingItem) -> TrendingSnapshot:
+    return TrendingSnapshot(
+        snapshot_date="2026-07-02",
+        period="daily",
+        github_items=list(items),
+        hf_paper_items=[],
+        hf_model_items=[],
+    )
+
+
 VALID_GITHUB_PROJECT_JSON = """{
   "repo": "oransimon/fixture-repo",
   "url": "https://github.com/oransimon/fixture-repo",
@@ -117,6 +145,57 @@ async def _fake_fetch_repo_details(
     return _repo_item()["details"]
 
 
+def test_snapshot_candidates_are_preferred_and_preserve_daily_velocity() -> None:
+    candidates, source = analyze_github_projects._select_candidates(
+        [_event()],
+        _trending_snapshot(_trending_item(velocity_score=27)),
+    )
+
+    assert source == "ossinsight"
+    assert len(candidates) == 1
+    assert candidates[0].full_name == "snapshot-owner/snapshot-repo"
+    assert candidates[0].stars_today == 27
+    assert candidates[0].stars_weekly == 0
+    assert candidates[0].metadata["language"] == "Rust"
+
+
+def test_normalized_events_are_used_when_snapshot_has_no_github_items() -> None:
+    candidates, source = analyze_github_projects._select_candidates([_event()], _trending_snapshot())
+
+    assert source == "normalized_events"
+    assert [candidate.full_name for candidate in candidates] == ["oransimon/fixture-repo"]
+
+
+def test_all_candidate_failures_are_distinct_from_filtered_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailingRunner:
+        def run_json(self, **kwargs: object) -> GitHubProjectAnalysisResponse:
+            raise PromptRunnerError(kind="json_parse_error", message="bad JSON")
+
+    monkeypatch.setattr(
+        analyze_github_projects,
+        "_load_config",
+        lambda: {"fetch": {"top_n_in_report": 3, "max_repos_to_analyze": 25}},
+    )
+    monkeypatch.setattr(analyze_github_projects, "_fetch_repo_details", _fake_fetch_repo_details)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    outcome = analyze_github_projects.analyze_github_projects(
+        [_event()],
+        prompt_runner=FailingRunner(),
+        max_workers=1,
+    )
+
+    assert outcome.analyses == {}
+    assert outcome.reason == "analysis_failed"
+    assert outcome.candidate_count == 1
+    assert outcome.analyzed_count == 0
+    assert outcome.filtered_count == 0
+    assert outcome.failed_count == 1
+    assert outcome.failures == ["oransimon/fixture-repo: json_parse_error: bad JSON"]
+
+
 def test_analyze_github_projects_accepts_fake_prompt_runner_plain_json(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -136,6 +215,24 @@ def test_analyze_github_projects_accepts_fake_prompt_runner_plain_json(
     assert isinstance(analyses["oransimon/fixture-repo"], ProjectAnalysis)
     assert analyses["oransimon/fixture-repo"].verdict == "Watch"
     assert analyses["oransimon/fixture-repo"].scores["total"] == 44
+
+
+def test_analyze_github_projects_preserves_positional_prompt_runner_compatibility(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        analyze_github_projects,
+        "_load_config",
+        lambda: {"fetch": {"top_n_in_report": 3, "max_repos_to_analyze": 25}},
+    )
+    monkeypatch.setattr(analyze_github_projects, "_fetch_repo_details", _fake_fetch_repo_details)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    runner = _prompt_runner(tmp_path, VALID_GITHUB_PROJECT_JSON)
+
+    outcome = analyze_github_projects.analyze_github_projects([_event()], runner, 1)
+
+    assert list(outcome) == ["oransimon/fixture-repo"]
 
 
 def test_analyze_one_repo_accepts_fenced_json(tmp_path: Path) -> None:

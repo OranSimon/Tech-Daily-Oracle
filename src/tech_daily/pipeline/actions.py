@@ -44,10 +44,10 @@ def analyze_companies(normalized_events: list[Any]) -> dict[str, Any]:
     return _analyze_companies(normalized_events)
 
 
-def analyze_github_projects(normalized_events: list[Any]) -> dict[str, Any]:
+def analyze_github_projects(normalized_events: list[Any], trending_snapshot: Any = None) -> Any:
     from analyze_github_projects import analyze_github_projects as _analyze_github_projects
 
-    return _analyze_github_projects(normalized_events)
+    return _analyze_github_projects(normalized_events, trending_snapshot=trending_snapshot)
 
 
 def analyze_macro_impact(normalized_events: list[Any], open_predictions: list[Any]) -> dict[str, Any]:
@@ -333,11 +333,11 @@ def analyze_papers_action(state: TechDailyState) -> dict[str, Any]:
     return analyze_papers_state_action(get_corpus_state(state))
 
 
-def analyze_github_projects_state_action(corpus_state: CorpusState) -> dict[str, Any]:
-    return analyze_github_projects(corpus_state.normalized_events)
+def analyze_github_projects_state_action(corpus_state: CorpusState, trending_snapshot: Any = None) -> Any:
+    return analyze_github_projects(corpus_state.normalized_events, trending_snapshot)
 
 
-def analyze_github_projects_action(state: TechDailyState) -> dict[str, Any]:
+def analyze_github_projects_action(state: TechDailyState) -> Any:
     return analyze_github_projects_state_action(get_corpus_state(state))
 
 
