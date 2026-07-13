@@ -798,3 +798,13 @@
 {"run_date": "2026-07-12", "title": "LLM-as-a-Tutor: Policy-Aware Prompt Adaptation for Non-Verifiable RL", "link": "https://arxiv.org/abs/2607.04412", "signal_strength": "medium", "overall_score": 0.44}
 {"run_date": "2026-07-12", "title": "SWE-Review: Closing the Loop on Issue Resolution with Agentic Code Review", "link": "https://arxiv.org/abs/2607.06065", "signal_strength": "medium", "overall_score": 0.76}
 {"run_date": "2026-07-12", "title": "Infinite Worlds with Versatile Interactions", "link": "https://arxiv.org/abs/2607.07534", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-07-13", "title": "Remember When It Matters: Proactive Memory Agent for Long-Horizon Agents", "link": "https://arxiv.org/abs/2607.08716", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-07-13", "title": "Self-Guided Test-Time Training for Long-Context LLMs", "link": "https://arxiv.org/abs/2607.09415", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-07-13", "title": "Apple's new SpeechAnalyzer API, benchmarked against Whisper and its predecessor", "link": "https://get-inscribe.com/blog/apple-speech-api-benchmark.html", "signal_strength": "medium", "overall_score": 0.42}
+{"run_date": "2026-07-13", "title": "A Quantized Native Runtime for On-Device Semantic Audio Generation", "link": "https://arxiv.org/abs/2607.08526", "signal_strength": "medium", "overall_score": 0.72}
+{"run_date": "2026-07-13", "title": "CineMobile: On-Device Image-to-Video Diffusion for Cinematic Camera Motion Generation", "link": "https://arxiv.org/abs/2607.03803", "signal_strength": "medium", "overall_score": 0.72}
+{"run_date": "2026-07-13", "title": "Jet-Long: Efficient Long-Context Extension with Dynamic Bifocal RoPE", "link": "https://arxiv.org/abs/2607.07740", "signal_strength": "strong", "overall_score": 0.81}
+{"run_date": "2026-07-13", "title": "Vidu S1: A Real-Time Interactive Video Generation Model", "link": "https://arxiv.org/abs/2607.03118", "signal_strength": "medium", "overall_score": 0.76}
+{"run_date": "2026-07-13", "title": "Meta Announces Muse Spark 1.1: A 1M-Token Agentic Model with First-Ever Paid Developer API", "link": "https://thursdai.news/releases/2026-07", "signal_strength": "strong", "overall_score": 0.62}
+{"run_date": "2026-07-13", "title": "MedPMC: A Systematic Framework for Scaling High-Fidelity Medical Multimodal Data for Foundation Models", "link": "https://arxiv.org/abs/2607.07673", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-07-13", "title": "A Sovereign, Open-Source Foundation Model for German and English", "link": "https://arxiv.org/abs/2607.09424", "signal_strength": "strong", "overall_score": 0.76}
