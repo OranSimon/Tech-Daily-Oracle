@@ -169,6 +169,7 @@ def test_arxiv_collector_builds_raw_events(monkeypatch: pytest.MonkeyPatch) -> N
         return None
 
     monkeypatch.setattr(arxiv.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(arxiv, "cutoff_dt", lambda hours: datetime(2026, 7, 1, tzinfo=UTC))
     xml = """<?xml version="1.0"?>
     <feed xmlns="http://www.w3.org/2005/Atom">
       <entry>

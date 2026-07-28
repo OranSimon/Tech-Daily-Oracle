@@ -7,7 +7,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import yaml
-
 from analyzer_helpers import schema_to_dataclass
 from llm_schemas import CompanyAnalysisResponse
 from prompt_runner import PromptRunner

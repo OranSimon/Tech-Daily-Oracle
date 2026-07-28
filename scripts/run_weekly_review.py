@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import sys
+from contextlib import suppress
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -17,20 +18,22 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from prompt_runner import PromptRunner
-from storage import (
-    save_weekly_review,
-    load_recent_reports,
-    load_open_predictions,
-    load_trending_history,
-    load_market_signals_history,
-)
-from score_predictions import compute_scorecard
-from collect_trending import collect_trending_snapshot
 from analyze_trending import analyze_trending
+from collect_trending import collect_trending_snapshot
+from prompt_runner import PromptRunner
+from score_predictions import compute_scorecard
+from storage import (
+    load_market_signals_history,
+    load_open_predictions,
+    load_recent_reports,
+    load_trending_history,
+    save_weekly_review,
+)
+
+from tech_daily.llm.contracts import ModelRole
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_WEEKLY_MODEL = "claude-sonnet-4-6"
+DEFAULT_WEEKLY_MODEL = ModelRole.DEFAULT
 
 
 def _load_config() -> dict:
@@ -155,7 +158,7 @@ def run_weekly_review(week_str: str | None = None, prompt_runner: PromptRunner |
         history = load_trending_history(days=60)
         weekly_trending = analyze_trending(weekly_snapshot, history, top_n=top_n)
         trending_section = weekly_trending.report_section
-        print(f"  [Trending] Weekly snapshot collected")
+        print("  [Trending] Weekly snapshot collected")
     except Exception as e:
         print(f"  [Trending] Weekly collection failed (non-fatal): {e}")
 
@@ -167,10 +170,8 @@ def run_weekly_review(week_str: str | None = None, prompt_runner: PromptRunner |
             for line in f:
                 line = line.strip()
                 if line:
-                    try:
+                    with suppress(Exception):
                         all_preds.append(json.loads(line))
-                    except Exception:
-                        pass
 
     pred_updates_this_week = []
     for p in all_preds:

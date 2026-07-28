@@ -15,7 +15,9 @@ if str(SCRIPT_DIR) not in sys.path:
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from tech_daily.cli.run_daily import main, run_daily  # noqa: E402
+from tech_daily.cli.run_daily import main, run_daily  # noqa: E402, I001
+
+__all__ = ["main", "run_daily"]
 
 
 if __name__ == "__main__":

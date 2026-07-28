@@ -10,27 +10,28 @@ import argparse
 import json
 import os
 import sys
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from analyze_trending import analyze_trending
+from collect_trending import collect_trending_snapshot
 from prompt_runner import PromptRunner
+from score_predictions import compute_scorecard
 from storage import (
-    save_monthly_review,
-    load_recent_reports,
+    load_market_signals_history,
     load_open_predictions,
     load_trending_history,
-    load_market_signals_history,
+    save_monthly_review,
 )
-from score_predictions import compute_scorecard
-from collect_trending import collect_trending_snapshot
-from analyze_trending import analyze_trending
+
+from tech_daily.llm.contracts import ModelRole
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_MONTHLY_MODEL = "claude-sonnet-4-6"
+DEFAULT_MONTHLY_MODEL = ModelRole.DEFAULT
 
 
 def _load_config() -> dict:
@@ -42,10 +43,7 @@ def _week_in_month(week_str: str, month_str: str) -> bool:
     """Return True if any day of the ISO week falls within month_str (YYYY-MM)."""
     try:
         monday = datetime.strptime(f"{week_str}-1", "%G-W%V-%u").date()
-        for i in range(7):
-            if (monday + timedelta(days=i)).strftime("%Y-%m") == month_str:
-                return True
-        return False
+        return any((monday + timedelta(days=i)).strftime("%Y-%m") == month_str for i in range(7))
     except ValueError:
         return False
 
@@ -219,7 +217,7 @@ def run_monthly_review(month_str: str | None = None, prompt_runner: PromptRunner
         history = load_trending_history(days=90)
         monthly_trending = analyze_trending(monthly_snapshot, history, top_n=top_n)
         trending_section = monthly_trending.report_section
-        print(f"  [Trending] Monthly snapshot collected")
+        print("  [Trending] Monthly snapshot collected")
     except Exception as e:
         print(f"  [Trending] Monthly collection failed (non-fatal): {e}")
     company_trends = _load_company_mention_trends(month_str)

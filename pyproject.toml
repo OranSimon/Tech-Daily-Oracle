@@ -8,12 +8,12 @@ version = "0.1.0"
 description = "Personal technology intelligence pipeline"
 requires-python = ">=3.11"
 dependencies = [
-  "anthropic>=0.40.0",
+  "anthropic>=0.116.0",
   "httpx>=0.27.0",
   "pyyaml>=6.0.2",
   "pydantic>=2.7.0",
-  "openai>=1.30.0",
-  "google-generativeai>=0.8.0",
+  "openai>=2.44.0",
+  "google-genai>=2.13.0",
   "yfinance>=0.2.40",
 ]
 

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from tech_daily.llm.contracts import ModelRole
 from tech_daily.llm.prompt_runner import PromptRunner
 from tech_daily.pipeline.state import ReportInputState
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 ROOT = str(ROOT_DIR)
-DEFAULT_DAILY_MODEL = "claude-sonnet-4-6"
+DEFAULT_DAILY_MODEL = ModelRole.DEFAULT
 
 _GITHUB_SECTION_PATTERN = re.compile(
     r"^## 5\. GitHub Trending: Top 3 High-Signal Repos\s*$.*?(?=^## 6\. Papers & Research Frontiers\s*$)",

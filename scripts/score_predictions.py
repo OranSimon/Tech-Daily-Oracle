@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import csv
 import json
-import math
 import os
+from contextlib import suppress
 from datetime import date
 from typing import Any
 
@@ -26,10 +26,8 @@ def load_predictions() -> list[dict[str, Any]]:
             for line in f:
                 line = line.strip()
                 if line:
-                    try:
+                    with suppress(json.JSONDecodeError):
                         predictions.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        pass
     return predictions
 
 
@@ -45,10 +43,7 @@ def compute_scorecard() -> dict[str, Any]:
         outcome = p.get("status") == "resolved_true"
         # Use final probability before resolution
         updates = p.get("updates", [])
-        if updates:
-            prob = updates[-1].get("probability_after", p.get("probability", 0.5))
-        else:
-            prob = p.get("probability", 0.5)
+        prob = updates[-1].get("probability_after", p.get("probability", 0.5)) if updates else p.get("probability", 0.5)
         scores.append(brier_score(prob, outcome))
 
     avg_brier = sum(scores) / len(scores)

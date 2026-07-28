@@ -14,6 +14,7 @@ from state import (
     PredictionUpdate,
     TechDailyState,
 )
+
 from tech_daily.predictions.results import PredictionOperationResult
 
 

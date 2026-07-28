@@ -6,11 +6,12 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from pydantic import BaseModel, ValidationError
 
-from tech_daily.llm.client import ClaudeLLMClient, LLMClient
+from tech_daily.llm.client import ClaudeLLMClient, TextLLMClient
+from tech_daily.llm.errors import ProviderExhaustedError
 
 __all__ = ["PromptRunner", "PromptRunnerError", "parse_json_response"]
 
@@ -41,7 +42,7 @@ def parse_json_response(raw_response: str) -> Any:
 class PromptRunner:
     def __init__(
         self,
-        llm_client: LLMClient | None = None,
+        llm_client: TextLLMClient | None = None,
         prompt_root: str | os.PathLike[str] = DEFAULT_PROMPT_ROOT,
     ):
         self.llm_client = llm_client or ClaudeLLMClient()
@@ -64,6 +65,26 @@ class PromptRunner:
     ) -> T:
         system = self.load_prompt(prompt_path)
         user = payload if isinstance(payload, str) else json.dumps(payload, ensure_ascii=False)
+        structured_generator = getattr(self.llm_client, "generate_structured", None)
+        if callable(structured_generator):
+            try:
+                return cast(
+                    T,
+                    structured_generator(
+                        system=system,
+                        user=user,
+                        schema=schema,
+                        model=model,
+                        max_tokens=max_tokens,
+                        cache_system=cache_system,
+                    ),
+                )
+            except ProviderExhaustedError as error:
+                raise PromptRunnerError(
+                    kind="provider_exhausted",
+                    message=str(error),
+                ) from error
+
         raw_response = self.llm_client.generate_text(
             system=system,
             user=user,
@@ -106,5 +127,5 @@ class PromptRunner:
             model=model,
             max_tokens=max_tokens,
             cache_system=cache_system,
-            auto_continue=False,
+            auto_continue=True,
         )

@@ -1,4 +1,4 @@
-"""Compatibility wrapper for package-owned LLM client boundary."""
+"""Compatibility exports for the provider-neutral production LLM boundary."""
 
 from __future__ import annotations
 

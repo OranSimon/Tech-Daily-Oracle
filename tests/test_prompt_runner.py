@@ -3,12 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import claude_client
 import pytest
-from llm_client import ClaudeLLMClient, LLMClient
+from llm_client import ClaudeLLMClient, TextLLMClient
 from prompt_runner import PromptRunner, PromptRunnerError
 from pydantic import BaseModel, ValidationError
 from web_search_client import ClaudeWebSearchClient
+
+from tech_daily.llm import client as llm_client_module
+from tech_daily.llm.contracts import ModelRole
+from tech_daily.llm.errors import ProviderExhaustedError
+from tech_daily.web_search import client as web_search_client_module
 
 
 class ExampleSchema(BaseModel):
@@ -44,20 +48,67 @@ class FakeLLMClient:
         return self.response
 
 
-def test_fake_llm_client_satisfies_protocol() -> None:
-    fake: LLMClient = FakeLLMClient('{"name": "alpha", "score": 1}')
+class FakeStructuredLLMClient(FakeLLMClient):
+    def __init__(self, response: ExampleSchema) -> None:
+        super().__init__("generate_text must not be used")
+        self.structured_response = response
+        self.structured_calls: list[dict[str, Any]] = []
+
+    def generate_structured(
+        self,
+        *,
+        system: str,
+        user: str,
+        schema: type[ExampleSchema],
+        model: str = "claude-sonnet-4-6",
+        max_tokens: int = 4096,
+        cache_system: bool = True,
+    ) -> ExampleSchema:
+        self.structured_calls.append(
+            {
+                "system": system,
+                "user": user,
+                "schema": schema,
+                "model": model,
+                "max_tokens": max_tokens,
+                "cache_system": cache_system,
+            }
+        )
+        return self.structured_response
+
+
+class ExhaustedStructuredLLMClient(FakeStructuredLLMClient):
+    def generate_structured(
+        self,
+        *,
+        system: str,
+        user: str,
+        schema: type[ExampleSchema],
+        model: str = "claude-sonnet-4-6",
+        max_tokens: int = 4096,
+        cache_system: bool = True,
+    ) -> ExampleSchema:
+        raise ProviderExhaustedError(
+            "generate_structured",
+            ["deepseek: invalid_provider_response", "claude: rate_limited"],
+        )
+
+
+def test_fake_llm_client_satisfies_text_compatibility_protocol() -> None:
+    fake: TextLLMClient = FakeLLMClient('{"name": "alpha", "score": 1}')
 
     assert fake.generate_text(system="s", user="u") == '{"name": "alpha", "score": 1}'
 
 
-def test_claude_llm_client_delegates_to_existing_client(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_claude_llm_client_delegates_to_neutral_client(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[dict[str, Any]] = []
 
-    def fake_call_claude(**kwargs: Any) -> str:
-        calls.append(kwargs)
-        return "adapter response"
+    class FakeProviderClient:
+        def generate_text(self, **kwargs: Any) -> str:
+            calls.append(kwargs)
+            return "adapter response"
 
-    monkeypatch.setattr(claude_client, "call_claude", fake_call_claude)
+    monkeypatch.setattr(llm_client_module, "get_default_client", lambda: FakeProviderClient())
 
     result = ClaudeLLMClient().generate_text(
         system="system",
@@ -73,28 +124,35 @@ def test_claude_llm_client_delegates_to_existing_client(monkeypatch: pytest.Monk
         {
             "system": "system",
             "user": "user",
-            "model": "model",
-            "max_tokens": 17,
+            "role": ModelRole.DEFAULT,
+            "max_output_tokens": 17,
             "cache_system": False,
             "auto_continue": True,
         }
     ]
 
 
-def test_claude_web_search_client_delegates_to_existing_client(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_claude_web_search_compatibility_name_delegates_to_neutral_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls: list[dict[str, Any]] = []
     response = [{"title": "result", "url": "https://example.com"}]
 
-    def fake_call_claude_web_search(prompt: str, max_uses: int = 3) -> list[dict[str, Any]]:
-        calls.append({"prompt": prompt, "max_uses": max_uses})
-        return response
+    class FakeProviderClient:
+        def search_web(self, *, prompt: str, max_results: int) -> list[dict[str, Any]]:
+            calls.append({"prompt": prompt, "max_results": max_results})
+            return response
 
-    monkeypatch.setattr(claude_client, "call_claude_web_search", fake_call_claude_web_search)
+    monkeypatch.setattr(
+        web_search_client_module,
+        "get_default_client",
+        lambda: FakeProviderClient(),
+    )
 
     result = ClaudeWebSearchClient().search("search prompt", max_uses=2)
 
     assert result == response
-    assert calls == [{"prompt": "search prompt", "max_uses": 2}]
+    assert calls == [{"prompt": "search prompt", "max_results": 2}]
 
 
 def test_prompt_runner_parses_and_validates_plain_json(tmp_path: Path) -> None:
@@ -114,6 +172,52 @@ def test_prompt_runner_parses_and_validates_plain_json(tmp_path: Path) -> None:
     assert fake.calls[0]["system"] == "System prompt"
     assert fake.calls[0]["user"] == '{"subject": "fixture"}'
     assert fake.calls[0]["max_tokens"] == 123
+    assert fake.calls[0]["auto_continue"] is False
+
+
+def test_prompt_runner_prefers_structured_client_boundary(tmp_path: Path) -> None:
+    prompt_path = tmp_path / "example.md"
+    prompt_path.write_text("System prompt", encoding="utf-8")
+    fake = FakeStructuredLLMClient(ExampleSchema(name="alpha", score=7))
+    runner = PromptRunner(fake, prompt_root=tmp_path)
+
+    result = runner.run_json(
+        prompt_path="example.md",
+        payload={"subject": "fixture"},
+        schema=ExampleSchema,
+        model="deep",
+        max_tokens=123,
+        cache_system=False,
+    )
+
+    assert result == ExampleSchema(name="alpha", score=7)
+    assert fake.calls == []
+    assert "auto_continue" not in fake.structured_calls[0]
+    assert fake.structured_calls == [
+        {
+            "system": "System prompt",
+            "user": '{"subject": "fixture"}',
+            "schema": ExampleSchema,
+            "model": "deep",
+            "max_tokens": 123,
+            "cache_system": False,
+        }
+    ]
+
+
+def test_prompt_runner_wraps_structured_provider_exhaustion(tmp_path: Path) -> None:
+    prompt_path = tmp_path / "example.md"
+    prompt_path.write_text("System prompt", encoding="utf-8")
+    runner = PromptRunner(
+        ExhaustedStructuredLLMClient(ExampleSchema(name="unused", score=0)),
+        prompt_root=tmp_path,
+    )
+
+    with pytest.raises(PromptRunnerError) as raised:
+        runner.run_json(prompt_path="example.md", payload={}, schema=ExampleSchema)
+
+    assert raised.value.kind == "provider_exhausted"
+    assert "deepseek: invalid_provider_response" in raised.value.message
 
 
 def test_prompt_runner_generates_text(tmp_path: Path) -> None:
@@ -134,6 +238,7 @@ def test_prompt_runner_generates_text(tmp_path: Path) -> None:
     assert fake.calls[0]["user"] == '{"run_date": "2026-07-02"}'
     assert fake.calls[0]["model"] == "fixture-model"
     assert fake.calls[0]["max_tokens"] == 321
+    assert fake.calls[0]["auto_continue"] is True
 
 
 def test_prompt_runner_parses_fenced_json(tmp_path: Path) -> None:

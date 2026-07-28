@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from typing import Any, TextIO
 
 from storage import load_collector_telemetry
+
 from tech_daily.storage.validation import StorageDiagnostics
 
 STATUSES = ("success", "partial", "failed", "skipped")

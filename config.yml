@@ -11,11 +11,13 @@ run:
   report_reading_time_target_minutes: 20
 
 model:
+  # Legacy model-name compatibility. New call sites select fast/default/deep
+  # roles, resolved through ai_providers below.
   default: "claude-sonnet-4-6"
   fast: "claude-haiku-4-5-20251001"
   deep: "claude-opus-4-7"
-  # These are starting budgets. claude_client.py auto-continues on truncation,
-  # so even if a report exceeds these, the final output won't be cut mid-sentence.
+  # These are starting budgets. The provider router continues truncated text
+  # with the originating provider, subject to provider/model support.
   # Higher initial budgets just mean fewer continuation API calls per run.
   # Chinese reports use ~1.5 tokens/char, so daily=16K handles ~10K Chinese chars.
   max_tokens_daily: 16000
@@ -23,7 +25,8 @@ model:
   max_tokens_monthly: 32000
 
 # AI provider fallback chain
-# First provider with a valid API key is tried; on failure the next is attempted.
+# The first provider with a valid API key is tried for text, structured output,
+# web search, and continuation. Only normalized eligible failures fall back.
 # Change "order" to rearrange or disable providers (remove from list to skip entirely).
 ai_providers:
   order: ["deepseek", "claude", "openai", "gemini"]

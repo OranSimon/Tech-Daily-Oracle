@@ -1,74 +1,73 @@
 from __future__ import annotations
 
-import sys
-from types import ModuleType
+from typing import Any
+
+from tech_daily.llm import client as llm_client_module
+from tech_daily.web_search import client as client_module
 
 
-class FakeClaudeClientModule(ModuleType):
-    call_claude_web_search: object
+class FakeProviderClient:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    def search_web(self, *, prompt: str, max_results: int) -> list[dict[str, Any]]:
+        self.calls.append({"prompt": prompt, "max_results": max_results})
+        return [{"title": "Fixture", "url": "https://example.com"}]
 
 
-def test_package_claude_web_search_client_delegates_to_legacy_function(monkeypatch) -> None:
-    from tech_daily.web_search.client import ClaudeWebSearchClient
+def test_provider_web_search_client_delegates_to_neutral_default(monkeypatch) -> None:
+    fake = FakeProviderClient()
+    monkeypatch.setattr(client_module, "get_default_client", lambda: fake)
 
-    fake_legacy = FakeClaudeClientModule("claude_client")
+    result = client_module.ProviderWebSearchClient().search(
+        "AI infrastructure news",
+        max_results=3,
+    )
 
-    def fake_call_claude_web_search(query: str, *, max_results: int = 5) -> list[dict[str, str]]:
-        assert query == "AI infrastructure news"
-        assert max_results == 3
-        return [{"title": "Fixture", "url": "https://example.com", "snippet": "Result"}]
-
-    fake_legacy.call_claude_web_search = fake_call_claude_web_search
-    monkeypatch.setitem(sys.modules, "claude_client", fake_legacy)
-
-    result = ClaudeWebSearchClient().search("AI infrastructure news", max_results=3)
-
-    assert result == [{"title": "Fixture", "url": "https://example.com", "snippet": "Result"}]
+    assert result == [{"title": "Fixture", "url": "https://example.com"}]
+    assert fake.calls == [{"prompt": "AI infrastructure news", "max_results": 3}]
 
 
-def test_package_claude_web_search_client_uses_legacy_default_max_uses(monkeypatch) -> None:
-    from tech_daily.web_search.client import ClaudeWebSearchClient
+def test_provider_web_search_client_uses_canonical_llm_singleton(monkeypatch) -> None:
+    fake = FakeProviderClient()
 
-    fake_legacy = FakeClaudeClientModule("claude_client")
-    calls: list[dict[str, int | str]] = []
+    def unexpected_local_config_load() -> None:
+        raise AssertionError("web-search boundary must not build a second router")
 
-    def fake_call_claude_web_search(prompt: str, max_uses: int = 3) -> list[dict[str, str]]:
-        calls.append({"prompt": prompt, "max_uses": max_uses})
-        return [{"title": "Fixture"}]
+    monkeypatch.setattr(llm_client_module, "get_default_client", lambda: fake)
+    monkeypatch.setattr(client_module, "_default_client", None, raising=False)
+    monkeypatch.setattr(client_module, "load_llm_settings", unexpected_local_config_load, raising=False)
 
-    fake_legacy.call_claude_web_search = fake_call_claude_web_search
-    monkeypatch.setitem(sys.modules, "claude_client", fake_legacy)
+    result = client_module.ProviderWebSearchClient().search("canonical query", max_results=4)
 
-    result = ClaudeWebSearchClient().search("fixture")
-
-    assert result == [{"title": "Fixture"}]
-    assert calls == [{"prompt": "fixture", "max_uses": 3}]
+    assert result == [{"title": "Fixture", "url": "https://example.com"}]
+    assert fake.calls == [{"prompt": "canonical query", "max_results": 4}]
 
 
-def test_package_claude_web_search_client_accepts_legacy_prompt_keyword(monkeypatch) -> None:
-    from tech_daily.web_search.client import ClaudeWebSearchClient
+def test_provider_web_search_client_preserves_max_uses_default(monkeypatch) -> None:
+    fake = FakeProviderClient()
+    monkeypatch.setattr(client_module, "get_default_client", lambda: fake)
 
-    fake_legacy = FakeClaudeClientModule("claude_client")
-    calls: list[dict[str, int | str]] = []
+    client_module.ProviderWebSearchClient().search(prompt="fixture", max_uses=2)
 
-    def fake_call_claude_web_search(prompt: str, max_uses: int = 3) -> list[dict[str, str]]:
-        calls.append({"prompt": prompt, "max_uses": max_uses})
-        return [{"title": "Fixture"}]
+    assert fake.calls == [{"prompt": "fixture", "max_results": 2}]
 
-    fake_legacy.call_claude_web_search = fake_call_claude_web_search
-    monkeypatch.setitem(sys.modules, "claude_client", fake_legacy)
 
-    result = ClaudeWebSearchClient().search(prompt="fixture", max_uses=3)
-
-    assert result == [{"title": "Fixture"}]
-    assert calls == [{"prompt": "fixture", "max_uses": 3}]
+def test_claude_web_search_client_is_neutral_compatibility_name() -> None:
+    assert issubclass(client_module.ClaudeWebSearchClient, client_module.ProviderWebSearchClient)
 
 
 def test_script_web_search_client_reexports_package_classes() -> None:
     from web_search_client import ClaudeWebSearchClient as ScriptClaudeWebSearchClient
+    from web_search_client import ProviderWebSearchClient as ScriptProviderWebSearchClient
     from web_search_client import WebSearchClient as ScriptWebSearchClient
 
-    from tech_daily.web_search.client import ClaudeWebSearchClient, WebSearchClient
+    from tech_daily.web_search.client import (
+        ClaudeWebSearchClient,
+        ProviderWebSearchClient,
+        WebSearchClient,
+    )
 
     assert ScriptClaudeWebSearchClient is ClaudeWebSearchClient
+    assert ScriptProviderWebSearchClient is ProviderWebSearchClient
     assert ScriptWebSearchClient is WebSearchClient

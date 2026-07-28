@@ -7,11 +7,11 @@ A personal technology intelligence system that generates a structured daily brie
 Every morning the system runs a 15-step pipeline:
 
 1. Loads historical context (7 daily + 4 weekly + 3 monthly reports, 30-day topic trends, 90-day company mentions)
-2. Collects from 27+ RSS feeds, Hacker News, Hugging Face, arXiv, GitHub Trending, and 15 Claude-powered web search queries
+2. Collects from 27+ RSS feeds, Hacker News, Hugging Face, arXiv, GitHub Trending, and 15 provider-routed web search queries
 3. Collects live market data via yfinance/FRED for watchlist tickers (Phase 5 — optional, off by default)
 4. Collects trending snapshots from OSSInsight (GitHub velocity data) and HuggingFace (daily papers + models)
 5. Normalizes and deduplicates events (title-hash deduplication, topic tagging, cross-domain importance boost)
-6. Analyzes topics, companies, papers, GitHub projects, social signals, and macro impact via Claude
+6. Analyzes topics, companies, papers, GitHub projects, social signals, and macro impact through the configured LLM provider chain
 7. Analyzes trending items — acceleration tracking, cross-list hit detection (GitHub ↔ HF models), LLM batch analysis for new entries
 8. Runs MarketSignalAgent for triggered watchlist tickers (Phase 4 — prompt-only financial signal layer)
 9. Updates open predictions with new evidence
@@ -51,7 +51,7 @@ Weekly reviews synthesize topic trends and score predictions (Brier score). Mont
 | 1 | ✅ Done | Core pipeline, all analyzers, report generation, prediction engine, storage |
 | 2 | ✅ Done | Historical memory (weekly/monthly reviews, trend history), Notion publisher |
 | 3 | ✅ Done | OSSInsight + HuggingFace trending engine; cross-domain topics (science, space, health); multi-provider AI fallback with auto-continuation; HN `general_interesting` topic; 15 web search queries |
-| 4 | ✅ Done | MarketSignalAgent — prompt-only financial signal layer; per-ticker Claude calls gated by company event importance; pre-formatted `report_snippet` injected into Section 13 |
+| 4 | ✅ Done | MarketSignalAgent — prompt-only financial signal layer; per-ticker LLM calls gated by company event importance; pre-formatted `report_snippet` injected into Section 13 |
 | 5 | ✅ Done | MarketSignalAgent with live market data (yfinance price/options, FRED macro); gated by `market_signal.live_data: true`; all failures non-fatal |
 | 6 | ⚠️ Partial | GitHub Actions workflows done; OSSInsight retry + github.com/trending HTML fallback done; test suite and X/Twitter API not yet |
 
@@ -61,7 +61,7 @@ Weekly reviews synthesize topic trends and score predictions (Brier score). Mont
 config.yml                      # Main configuration
 requirements.txt                # Python dependencies
 
-prompts/                        # Claude prompt templates
+prompts/                        # Provider-neutral LLM prompt templates
   daily_brief.md                # Daily report structure and style guide (18 sections)
   topic_analysis.md             # Per-topic trend analysis
   company_analysis.md           # Company event analysis
@@ -110,7 +110,7 @@ scripts/                        # Python orchestration (22 modules)
   generate_report.py            # Report generation with history context
   storage.py                    # File I/O and persistence
   state.py                      # TechDailyState blackboard + domain dataclasses
-  claude_client.py              # Multi-provider AI client (Claude/GPT/Gemini + auto-continuation)
+  claude_client.py              # Deprecated compatibility wrappers for the neutral LLM client
   publish_notion.py             # Markdown → Notion blocks publisher
 
 reports/
@@ -144,21 +144,16 @@ data/
 pip install -r requirements.txt
 ```
 
-To use only Claude (no fallback providers):
-```bash
-pip install anthropic httpx pyyaml
-```
-
 ### 2. Configure environment variables
 
 **Required — at least one AI provider key:**
 ```bash
 export DEEPSEEK_API_KEY=sk-...        # DeepSeek (first provider by default)
-export ANTHROPIC_API_KEY=sk-ant-...   # Claude fallback + web search
-export OPENAI_API_KEY=sk-...          # OpenAI fallback
-export GEMINI_API_KEY=AIza...         # Gemini fallback
+export ANTHROPIC_API_KEY=sk-ant-...   # Claude
+export OPENAI_API_KEY=sk-...          # OpenAI
+export GEMINI_API_KEY=AIza...         # Gemini (GOOGLE_API_KEY is also accepted)
 ```
-The system tries providers in order. It skips any provider whose key is missing, so you only need the keys for providers you want active.
+The system tries providers in order and skips providers whose key is missing. For local operation, one provider key is sufficient for text, structured output, web search, and continuation, subject to model and tool availability. Configure additional keys when you want fallback resilience.
 
 **Strongly recommended** (more sources, higher quality):
 ```bash
@@ -261,7 +256,7 @@ Output: `reports/daily/YYYY-MM-DD.md`
 | arXiv | cs.AI, cs.LG, cs.RO, cs.CV, cs.CL (up to 20 papers per category, 2 days back) |
 | GitHub Search API | Recent repos by star velocity (daily + weekly windows) |
 | OSSInsight | GitHub velocity trending (daily / weekly / monthly), with HTML scrape fallback |
-| Claude web search | 15 targeted queries per run (10 CS/AI beats + 5 cross-domain: science, health, space, disasters, materials) |
+| Provider-native web search | 15 targeted queries per run (10 CS/AI beats + 5 cross-domain: science, health, space, disasters, materials) |
 | yfinance | OHLCV price history, ATM options IV/put-call ratio/skew for watchlist tickers (Phase 5) |
 | FRED | Fed funds rate, CPI YoY, unemployment rate (Phase 5) |
 
@@ -283,7 +278,7 @@ The MarketSignalAgent generates qualitative per-ticker signals using a "sensor f
 
 **Phase 4 (prompt-only, default):**
 - Triggers when a watchlist ticker's company appears in today's `company_analyses` with medium+ significance
-- One Claude call per triggered ticker (up to `max_tickers_per_run: 5`)
+- One provider-routed LLM call per triggered ticker (up to `max_tickers_per_run: 5`)
 - Output: conclusion, base/bull/bear cases, observation points, signals table — pre-formatted as `report_snippet` for Section 13
 
 **Phase 5 (live data, opt-in):**
@@ -297,20 +292,24 @@ The MarketSignalAgent generates qualitative per-ticker signals using a "sensor f
 
 ---
 
-## AI Provider Fallback
+## AI Provider Routing
 
-The system uses a provider chain: **DeepSeek → Claude → OpenAI → Gemini** by default. On any API error, rate-limit, or missing key the next provider is tried transparently:
+The default provider chain is **DeepSeek → Claude → OpenAI → Gemini**. Business code selects neutral roles (fast / default / deep); `config.yml` maps each role to a provider-native model. The same provider order applies to text, structured output, web search, and continuation.
 
+Fallback is deliberately narrow. It occurs only for the seven normalized categories `MissingCredential`, `AuthenticationFailure`, `RateLimited`, `QuotaExceeded`, `NetworkFailure`, `ProviderUnavailable`, and `InvalidProviderResponse`. Programming errors, unknown providers, malformed configuration, and unsupported internal capabilities surface immediately.
+
+If a text response reaches its output limit, continuation stays with the provider that produced the partial response (up to four continuation calls). If an eligible continuation failure occurs, the next provider restarts the complete logical request; it never appends to another provider's partial output. Structured responses are parsed and schema-validated before an attempt succeeds.
+
+Every provider adapter has paths for all four capabilities. Web search uses the provider-native facility: DeepSeek's supported Anthropic-compatible search endpoint, Claude web search, OpenAI Responses web search, or Gemini Google Search grounding. The configured model, account, region, and endpoint must expose the requested feature; otherwise the provider may return an eligible availability or invalid-response failure.
+
+Routing telemetry contains facts, not content. A configured telemetry sink receives sanitized records such as:
+
+```text
+capability=generate_text provider=deepseek attempt=1 outcome=failure error_category=rate_limited
+capability=generate_text provider=claude attempt=2 outcome=success error_category=None
 ```
-[AI] deepseek (deepseek-v4-flash) failed: quota exceeded
-[AI] Using fallback provider: claude (claude-sonnet-4-6)
-```
 
-**Auto-continuation on truncation:** If any report response hits `max_tokens`, Claude automatically resumes via assistant-message prefill (up to 4 continuations), ensuring reports are never cut mid-sentence. This applies to all markdown reports (daily, weekly, monthly). JSON calls (topic analysis, market signals) do not auto-continue — they use a 4096-token budget which is sufficient for structured outputs.
-
-**Model role mapping:** Roles (fast / default / deep) are preserved across providers — a fast Claude-style call becomes a fast DeepSeek/OpenAI/Gemini call, not a full-cost one. Models are configured in `config.yml` under `ai_providers`.
-
-**`web_search` is Claude-only** — the `web_search_20250305` built-in tool is Anthropic-specific. If Claude is unavailable when web search runs, those queries are skipped; the rest of the pipeline continues normally with the fallback provider.
+Prompts, generated text, and credentials are excluded.
 
 **Changing the provider order** — edit `config.yml`:
 
@@ -319,11 +318,11 @@ ai_providers:
   order: ["deepseek", "claude", "openai", "gemini"]
 ```
 
-**Disabling a provider:**
+**Using a single provider:**
 
 ```yaml
 ai_providers:
-  order: ["claude"]   # Claude only, no fallback
+  order: ["claude"]   # one provider, no fallback
 ```
 
 ---
@@ -346,7 +345,7 @@ The trending pipeline runs in parallel with source collection on every daily run
 - Verdict: `accelerating | stable | decelerating | new`
 - Cross-list detection: exact owner/name match between GitHub and HF model hub → "两个平台同时上榜"
 
-**LLM batch analysis:** New entries (no prior history) are analyzed in a single batched Claude call — one snippet per item, in Chinese. Returning items get programmatic snippets (no API cost).
+**LLM batch analysis:** New entries (no prior history) are analyzed in a single provider-routed batch call — one snippet per item, in Chinese. Returning items get programmatic snippets (no API cost).
 
 ---
 
@@ -364,9 +363,9 @@ Add these **Repository Secrets** (Settings → Secrets and variables → Actions
 | Secret | Required | Notes |
 |--------|----------|-------|
 | `DEEPSEEK_API_KEY` | Recommended | DeepSeek — first provider by default |
-| `ANTHROPIC_API_KEY` | Recommended | Claude fallback and Claude web search |
-| `OPENAI_API_KEY` | Recommended | OpenAI fallback |
-| `GEMINI_API_KEY` | Optional | Gemini fallback |
+| `ANTHROPIC_API_KEY` | Optional | Claude text, structured output, continuation, and web search |
+| `OPENAI_API_KEY` | Optional | OpenAI text, structured output, continuation, and web search |
+| `GEMINI_API_KEY` | Optional | Gemini text, structured output, continuation, and Google Search grounding |
 | `HF_TOKEN` | Recommended | Hugging Face access |
 | `NOTION_API_KEY` | Optional | If publishing to Notion |
 | `NOTION_DATABASE_ID` | Optional | With above |

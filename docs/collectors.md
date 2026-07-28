@@ -193,9 +193,9 @@ Do not retry:
 
 Retry warnings are appended to collector telemetry. A collector that succeeds after a retry may be reported as `partial` because it produced records and warnings. A collector that exhausts retries with no records is reported as `failed`. Failures remain non-fatal unless the collector was already fatal before this policy existed.
 
-## Claude And Web Search
+## Provider-Neutral Web Search
 
-Collectors must not import `claude_client` directly. Text/JSON LLM work belongs behind `PromptRunner`; web-search collection belongs behind `WebSearchClient`.
+Collectors must not import a provider SDK or a legacy provider-named client directly. Text/JSON LLM work belongs behind `PromptRunner`; web-search collection belongs behind `WebSearchClient`. Production uses `ProviderWebSearchClient`, which sends search through the same configured provider order as other LLM capabilities. Deprecated provider-named wrappers remain confined to the compatibility boundary.
 
 Allowed web-search dependency:
 
@@ -206,7 +206,10 @@ from web_search_client import WebSearchClient
 Forbidden in collector modules:
 
 ```python
-from claude_client import call_claude_web_search
+import anthropic
+import openai
 ```
 
-`tests/test_migrated_analyzers_no_direct_claude.py` scans production scripts recursively and only allows direct Claude calls in the explicit adapter/legacy files.
+Provider-native search support depends on the configured model, account, region, and tool availability. Eligible provider failures fall through to the next configured provider; invalid search result shapes are rejected before collection succeeds.
+
+`tests/test_migrated_analyzers_no_direct_claude.py` scans production scripts recursively and confines legacy provider-named calls to explicit compatibility files.

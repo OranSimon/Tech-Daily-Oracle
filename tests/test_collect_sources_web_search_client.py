@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 import collect_sources
+import pytest
+from collectors import web_search
+
+from tech_daily.llm.errors import ProviderExhaustedError
 
 
 class FakeWebSearchClient:
@@ -10,7 +14,13 @@ class FakeWebSearchClient:
         self.response = response
         self.calls: list[dict[str, Any]] = []
 
-    def search(self, prompt: str, max_uses: int = 3) -> list[dict[str, Any]]:
+    def search(
+        self,
+        prompt: str,
+        max_uses: int = 3,
+        *,
+        max_results: int | None = None,
+    ) -> list[dict[str, Any]]:
         self.calls.append({"prompt": prompt, "max_uses": max_uses})
         if isinstance(self.response, BaseException):
             raise self.response
@@ -76,7 +86,12 @@ def test_collect_sources_uses_fake_web_search_client_for_source_events() -> None
 
 
 def test_collect_sources_continues_when_web_search_client_fails() -> None:
-    fake = FakeWebSearchClient(RuntimeError("search unavailable"))
+    fake = FakeWebSearchClient(
+        ProviderExhaustedError(
+            "search_web",
+            ["deepseek: provider_unavailable"],
+        )
+    )
 
     events = collect_sources.collect_sources(
         _web_search_only_config(),
@@ -85,3 +100,39 @@ def test_collect_sources_continues_when_web_search_client_fails() -> None:
     )
 
     assert events == []
+    assert len(fake.calls) == 2
+
+
+def test_web_search_collector_propagates_type_error_without_retry() -> None:
+    fake = FakeWebSearchClient(TypeError("collector programming defect"))
+
+    with pytest.raises(TypeError, match="collector programming defect"):
+        web_search.web_search_query_to_events(
+            "query",
+            "2026-07-27",
+            fake,
+        )
+
+    assert len(fake.calls) == 1
+
+
+def test_collector_defaults_to_neutral_web_search_client(monkeypatch) -> None:
+    response = [
+        {
+            "title": "Neutral result",
+            "url": "https://example.com/neutral",
+            "source": "Example",
+            "summary": "Summary",
+            "published_at": "2026-07-27",
+        }
+    ]
+
+    class DefaultFakeWebSearchClient(FakeWebSearchClient):
+        def __init__(self) -> None:
+            super().__init__(response)
+
+    monkeypatch.setattr(web_search, "ProviderWebSearchClient", DefaultFakeWebSearchClient)
+
+    events = web_search.fetch_web_search_sync(["q"], "2026-07-27")
+
+    assert [event.raw_url for event in events] == ["https://example.com/neutral"]

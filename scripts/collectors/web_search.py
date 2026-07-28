@@ -5,11 +5,19 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from state import RawEvent
-from web_search_client import ClaudeWebSearchClient, WebSearchClient
+from web_search_client import ProviderWebSearchClient, WebSearchClient
 
 from collectors.base import now_iso
-from collectors.retry import NETWORK_RETRY_CONFIG, retry_sync
+from collectors.retry import RetryConfig, retry_sync
 from collectors.telemetry import CollectorWarning
+from tech_daily.llm.errors import ProviderExhaustedError
+
+
+def _retryable_llm_exhaustion(error: BaseException) -> bool:
+    return isinstance(error, ProviderExhaustedError)
+
+
+LLM_RETRY_CONFIG = RetryConfig(retryable=_retryable_llm_exhaustion)
 
 WEB_SEARCH_QUERIES = [
     # --- Core CS / AI beats ---
@@ -51,10 +59,10 @@ def web_search_query_to_events(
             lambda: web_search_client.search(prompt, max_uses=3),
             operation_name=f"Web search query: {query[:40]}",
             warnings=warnings,
-            config=NETWORK_RETRY_CONFIG,
+            config=LLM_RETRY_CONFIG,
         )
-    except Exception as e:
-        print(f"  [WebSearch] Query failed ({query[:40]}...): {e}")
+    except ProviderExhaustedError as error:
+        print(f"  [WebSearch] Query failed ({query[:40]}...): {error}")
         return []
 
     events = []
@@ -86,7 +94,7 @@ def fetch_web_search_sync(
 ) -> list[RawEvent]:
     """Run all web search queries in parallel."""
 
-    client = web_search_client or ClaudeWebSearchClient()
+    client = web_search_client or ProviderWebSearchClient()
     all_events: list[RawEvent] = []
     seen_urls: set[str] = set()
 

@@ -13,8 +13,9 @@ FORBIDDEN_CLAUDE_TOKENS = [
 ALLOWED_CLAUDE_BOUNDARY_FILES = {
     Path("scripts/claude_client.py"),
     Path("scripts/llm_client.py"),
-    Path("src/tech_daily/llm/client.py"),
     Path("src/tech_daily/web_search/client.py"),
+    Path("src/tech_daily/web_search/__init__.py"),
+    Path("scripts/web_search_client.py"),
 }
 
 CLAUDE_GUARD_GLOB_ROOTS = (
@@ -57,3 +58,12 @@ def test_only_boundary_files_use_legacy_claude_client_directly() -> None:
             assert token not in text, (
                 f"{path} contains direct Claude dependency {token!r}; use PromptRunner or WebSearchClient instead"
             )
+
+
+def test_business_modules_do_not_use_claude_named_web_search() -> None:
+    for path in sorted(path for root in CLAUDE_GUARD_GLOB_ROOTS for path in root.rglob("*.py")):
+        if path in ALLOWED_CLAUDE_BOUNDARY_FILES:
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert "ClaudeWebSearchClient" not in text
+        assert "call_claude_web_search" not in text

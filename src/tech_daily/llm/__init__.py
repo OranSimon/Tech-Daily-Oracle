@@ -1,12 +1,74 @@
 """LLM boundary package."""
 
-from tech_daily.llm.client import ClaudeLLMClient, LLMClient
+from tech_daily.llm.client import (
+    ClaudeLLMClient,
+    LLMClient,
+    ProviderLLMClient,
+    call_llm,
+    call_llm_json,
+    call_llm_structured,
+    call_llm_web_search,
+    get_default_client,
+)
+from tech_daily.llm.config import LLMSettings, ProviderSettings, load_llm_settings, resolve_role
+from tech_daily.llm.contracts import (
+    Capability,
+    FinishReason,
+    LLMResponse,
+    ModelRole,
+    SearchRequest,
+    SearchResponse,
+    StructuredRequest,
+    TextRequest,
+)
+from tech_daily.llm.errors import (
+    AuthenticationFailure,
+    InvalidProviderResponse,
+    LLMConfigurationError,
+    MissingCredential,
+    NetworkFailure,
+    ProviderExhaustedError,
+    ProviderFailure,
+    ProviderUnavailable,
+    QuotaExceeded,
+    RateLimited,
+    is_fallback_eligible,
+)
 from tech_daily.llm.prompt_runner import PromptRunner, PromptRunnerError, parse_json_response
 
 __all__ = [
+    "AuthenticationFailure",
+    "Capability",
     "ClaudeLLMClient",
+    "FinishReason",
+    "InvalidProviderResponse",
+    "LLMConfigurationError",
     "LLMClient",
+    "LLMResponse",
+    "LLMSettings",
+    "MissingCredential",
+    "ModelRole",
+    "NetworkFailure",
     "PromptRunner",
     "PromptRunnerError",
+    "ProviderExhaustedError",
+    "ProviderFailure",
+    "ProviderLLMClient",
+    "ProviderSettings",
+    "ProviderUnavailable",
+    "QuotaExceeded",
+    "RateLimited",
+    "SearchRequest",
+    "SearchResponse",
+    "StructuredRequest",
+    "TextRequest",
+    "call_llm",
+    "call_llm_json",
+    "call_llm_structured",
+    "call_llm_web_search",
+    "get_default_client",
+    "is_fallback_eligible",
+    "load_llm_settings",
     "parse_json_response",
+    "resolve_role",
 ]
