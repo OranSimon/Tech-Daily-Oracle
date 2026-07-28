@@ -187,9 +187,7 @@ def test_anthropic_compatible_search_uses_server_web_search_tool(provider: str) 
 
     adapter.search_web(SearchRequest("recent AI news", max_results=3, max_output_tokens=321))
 
-    assert client.last_request["tools"] == [
-        {"type": "web_search_20250305", "name": "web_search", "max_uses": 3}
-    ]
+    assert client.last_request["tools"] == [{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}]
     assert client.last_request["messages"] == [{"role": "user", "content": "recent AI news"}]
     assert client.last_request["max_tokens"] == 321
 
@@ -284,9 +282,7 @@ def test_router_rejects_missing_url_before_accepting_search_attempt() -> None:
     first = FakeAdapter("deepseek", search_results=[{"title": "missing URL"}])
     second = FakeAdapter("claude")
 
-    result = ProviderRouter([first, second], on_attempt=records.append).search_web(
-        SearchRequest("query")
-    )
+    result = ProviderRouter([first, second], on_attempt=records.append).search_web(SearchRequest("query"))
 
     assert result.provider == "claude"
     assert records[0].error_category == "invalid_provider_response"

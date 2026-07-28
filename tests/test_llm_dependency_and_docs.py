@@ -30,8 +30,7 @@ def test_provider_sdk_floors_match_installation_files() -> None:
 
 def test_docs_do_not_claim_web_search_is_claude_only() -> None:
     text = "\n".join(
-        Path(path).read_text(encoding="utf-8")
-        for path in ["README.md", "docs/llm_boundary.md", "docs/collectors.md"]
+        Path(path).read_text(encoding="utf-8") for path in ["README.md", "docs/llm_boundary.md", "docs/collectors.md"]
     )
     assert "web_search is Claude-only" not in text
     assert "Claude fallback + web search" not in text
