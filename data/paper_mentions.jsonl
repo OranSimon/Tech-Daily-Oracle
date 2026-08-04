@@ -1195,3 +1195,21 @@
 {"run_date": "2026-08-03", "title": "Explorative Modeling: Unlocking a Third Pretraining Axis and End-to-End Generation", "link": "https://arxiv.org/abs/2607.27372", "signal_strength": "medium", "overall_score": 0.64}
 {"run_date": "2026-08-03", "title": "MPIE-Bench: Benchmarking Anatomically Plausible Multi-Person Interaction Editing", "link": "https://arxiv.org/abs/2607.27616", "signal_strength": "medium", "overall_score": 0.59}
 {"run_date": "2026-08-03", "title": "Can Large Language Models Execute Parent Orders?", "link": "https://arxiv.org/abs/2607.28410", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-08-04", "title": "DAPD: Dual-Anchored Policy Distillation", "link": "https://arxiv.org/abs/2608.01735", "signal_strength": "medium", "overall_score": 0.51}
+{"run_date": "2026-08-04", "title": "To Add Is Machine, To Delete Is Human: Measuring and Mitigating Deletion Avoidance in LLM Code Editing", "link": "https://arxiv.org/abs/2607.28887", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-08-04", "title": "SAF-OPD: Stable Advantage Fusion for On-Policy Distillation", "link": "https://arxiv.org/abs/2607.29209", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-08-04", "title": "LongHorizon-Harness: Advancing Long-Horizon Agents for Real-World Tasks", "link": "https://arxiv.org/abs/2608.01964", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-08-04", "title": "Compute Globally, Materialize Locally: The Memory Contract of Sparse Event-KV", "link": "https://arxiv.org/abs/2607.23693", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-08-04", "title": "DiffusionGemma Technical Report", "link": "https://arxiv.org/abs/2608.00146", "signal_strength": "strong", "overall_score": 0.83}
+{"run_date": "2026-08-04", "title": "Constitutional Midtraining: Content Presence Drives Alignment Gains", "link": "https://arxiv.org/abs/2607.26654", "signal_strength": "medium", "overall_score": 0.61}
+{"run_date": "2026-08-04", "title": "Progressive Agent Skill Generation via Reinforcement Learning", "link": "https://arxiv.org/abs/2608.01678", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-08-04", "title": "SGTP: Sampling-based Game-Theoretic Planning for Real-Time Multi-Vehicle Autonomous Racing", "link": "https://arxiv.org/abs/2607.25388", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-08-04", "title": "Qwen-CUA: Native Computer Use for (almost) Everything", "link": "http://arxiv.org/abs/2608.02352v1", "signal_strength": "strong", "overall_score": 0.72}
+{"run_date": "2026-08-04", "title": "MoRAL: Sensor-Grounded BEV Reasoning for Compact VLMs toward Edge-Oriented Autonomous Driving", "link": "http://arxiv.org/abs/2608.02449v1", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-08-04", "title": "AURORA-LM: Autoencoding Unified Representation for Continuous-Latent Diffusion Language Modeling", "link": "http://arxiv.org/abs/2608.02602v1", "signal_strength": "medium", "overall_score": 0.76}
+{"run_date": "2026-08-04", "title": "ICDAR 2026 Competition on Information Extraction from Atomic Layer Deposition/Etching (ALD/E) Scientific Figures", "link": "https://arxiv.org/abs/2607.26848", "signal_strength": "medium", "overall_score": 0.48}
+{"run_date": "2026-08-04", "title": "Mental World Modeling", "link": "https://arxiv.org/abs/2607.27201", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-08-04", "title": "GEOID-Flood: A Large-Scale Multi-Modal Benchmark Dataset for Flood Segmentation", "link": "https://arxiv.org/abs/2608.02315", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-08-04", "title": "CoWAM: Coordination Contracts for Selective Policy Intervention with WAMs", "link": "http://arxiv.org/abs/2608.02578v1", "signal_strength": "medium", "overall_score": 0.48}
+{"run_date": "2026-08-04", "title": "AtumAI: A Principled Framework for Agentic Generation of Datacenter Control-Plane Policies", "link": "http://arxiv.org/abs/2608.02569v1", "signal_strength": "strong", "overall_score": 0.78}
+{"run_date": "2026-08-04", "title": "EMBL AI Librarian: Life-Sciences Knowledge Layer for AI Agents", "link": "https://arxiv.org/abs/2607.28229", "signal_strength": "medium", "overall_score": 0.66}
