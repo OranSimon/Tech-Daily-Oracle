@@ -1573,3 +1573,23 @@
 {"run_date": "2026-08-20", "title": "SkillForge: Self-Distilling Agents for Project-Specific Issue Resolution", "link": "https://arxiv.org/abs/2608.18933", "signal_strength": "medium", "overall_score": 0.68}
 {"run_date": "2026-08-20", "title": "Demystifying Agent Skills: Why They Work-Until They Don't", "link": "https://arxiv.org/abs/2608.14036", "signal_strength": "medium", "overall_score": 0.6}
 {"run_date": "2026-08-20", "title": "Energy-Guided Flow Matching", "link": "https://arxiv.org/abs/2608.05811", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-08-21", "title": "Repo0: Design-Driven Zero-to-All Code Generation", "link": "https://arxiv.org/abs/2608.19854", "signal_strength": "medium", "overall_score": 0.59}
+{"run_date": "2026-08-21", "title": "SWE-bench Science: Can Coding Agents Resolve Engineering Tasks in Science?", "link": "https://arxiv.org/abs/2608.19799", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-08-21", "title": "Hierarchical Self-Improvement: A Framework for Task-Specific Evolvable Agent Harnesses", "link": "https://arxiv.org/abs/2608.08466", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-08-21", "title": "ArmorOCR: Grounded Adversarial Visual Perception via Observation-Transferred Self-Distillation", "link": "http://arxiv.org/abs/2608.20122v1", "signal_strength": "medium", "overall_score": 0.65}
+{"run_date": "2026-08-21", "title": "Zetta ζ: An Efficient Closed-Loop Embodied Harness for Self-Evolving Physical Intelligence", "link": "https://arxiv.org/abs/2608.16590", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-08-21", "title": "The Embedder's Dilemma: LLMs Are Better, but at What Cost?", "link": "https://arxiv.org/abs/2608.12875", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-08-21", "title": "Measuring benchmark optimization in speech recognition", "link": "https://huggingface.co/blog/asr-benchmark-optimization", "signal_strength": "medium", "overall_score": 0.5}
+{"run_date": "2026-08-21", "title": "Chain-of-Experience for Continual LLM Improvement", "link": "https://arxiv.org/abs/2608.18027", "signal_strength": "strong", "overall_score": 0.64}
+{"run_date": "2026-08-21", "title": "FlashPrefill V2: Block-Sparse Prefill Attention for Long-Context LLM Serving", "link": "https://arxiv.org/abs/2608.19758", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-08-21", "title": "Inject, Align, Recover: Staged Post-Training for Retrieval-Free Document Knowledge Internalization", "link": "https://arxiv.org/abs/2608.20281", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-08-21", "title": "PolicyGuide: From Guarding One Action to Guiding the Whole Workflow for Policy-Compliant LLM Agents", "link": "https://arxiv.org/abs/2608.19861", "signal_strength": "medium", "overall_score": 0.76}
+{"run_date": "2026-08-21", "title": "Thinking in a Low-Resource Language: What SFT Builds, What RL Fixes, What Accuracy Cannot See", "link": "https://arxiv.org/abs/2608.17744", "signal_strength": "medium", "overall_score": 0.52}
+{"run_date": "2026-08-21", "title": "SPADE: Self-Play in Adaptive Synthetic Executable Environments", "link": "https://arxiv.org/abs/2608.19197", "signal_strength": "strong", "overall_score": 0.78}
+{"run_date": "2026-08-21", "title": "LEGO-RL: Harness-Native Reinforcement Learning for Coding Agents", "link": "https://arxiv.org/abs/2608.17393", "signal_strength": "medium", "overall_score": 0.67}
+{"run_date": "2026-08-21", "title": "MidTool: Mid-training Data Synthesis for Agentic Tool Use", "link": "http://arxiv.org/abs/2608.20314v1", "signal_strength": "strong", "overall_score": 0.76}
+{"run_date": "2026-08-21", "title": "Phantom Gains: Auditing Self-Improvement Against a Measured Null", "link": "http://arxiv.org/abs/2608.20290v1", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-08-21", "title": "Swift-Image: Exploring the Performance Frontier of Compact Unified Image Generation Models", "link": "http://arxiv.org/abs/2608.20334v1", "signal_strength": "medium", "overall_score": 0.5}
+{"run_date": "2026-08-21", "title": "Unwarping the Lens: A Physics-Grounded Approach to Video Glasses Removal", "link": "http://arxiv.org/abs/2608.20212v1", "signal_strength": "strong", "overall_score": 0.74}
+{"run_date": "2026-08-21", "title": "G3Ego: Gaze-Guided Graphs for Egocentric Action Understanding", "link": "http://arxiv.org/abs/2608.20157v1", "signal_strength": "medium", "overall_score": 0.44}
+{"run_date": "2026-08-21", "title": "affaan-m/ECC", "link": "https://github.com/affaan-m/ECC", "signal_strength": "medium", "overall_score": 0.52}
