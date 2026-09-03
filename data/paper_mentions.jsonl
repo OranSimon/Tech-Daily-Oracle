@@ -1881,3 +1881,24 @@
 {"run_date": "2026-09-02", "title": "Agents in the Large: Perception-Centered Architecture for Persistent Agents", "link": "https://arxiv.org/abs/2608.30478", "signal_strength": "medium", "overall_score": 0.66}
 {"run_date": "2026-09-02", "title": "EdiTikZ: Scientific Figure Editing from Revision Trajectories", "link": "http://arxiv.org/abs/2609.01409v1", "signal_strength": "medium", "overall_score": 0.59}
 {"run_date": "2026-09-02", "title": "AutoConcept: Training-Free Concept-Guided Reranking for Metadata-Available Composed Image Retrieval", "link": "http://arxiv.org/abs/2609.01456v1", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-03", "title": "OpenAI begins rolling out GPT-6 Astra", "link": "https://www.cnbc.com/2026/09/03/open-ai-astra-gpt-6-cyber.html", "signal_strength": "strong", "overall_score": 0.86}
+{"run_date": "2026-09-03", "title": "From Production Traffic to Post-Training: Building a Self-Hosted LLM That Covers the Corporate Request Mix", "link": "https://arxiv.org/abs/2609.01572", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-09-03", "title": "DiagEvo: Diagnosis-Guided Self-Evolution via Hierarchical Error Memory", "link": "https://arxiv.org/abs/2609.00768", "signal_strength": "medium", "overall_score": 0.72}
+{"run_date": "2026-09-03", "title": "Aspire: Can Models Self-Evolve from Vague Goals?", "link": "https://arxiv.org/abs/2608.31111", "signal_strength": "medium", "overall_score": 0.68}
+{"run_date": "2026-09-03", "title": "A Physics-Consistent Benchmark for Contact-Rich Human-Robot Interaction in Assistive Care", "link": "http://arxiv.org/abs/2609.02402v1", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-09-03", "title": "WHALE: A Simple Recipe for Joint Harness-Weight Optimization", "link": "https://arxiv.org/abs/2609.00196", "signal_strength": "strong", "overall_score": 0.66}
+{"run_date": "2026-09-03", "title": "Small Language Models as Judges for Rubric-Based Reinforcement Learning", "link": "https://arxiv.org/abs/2608.30005", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-09-03", "title": "Kirin: Animal Motion Generation from In-the-Wild Video", "link": "https://arxiv.org/abs/2609.01823", "signal_strength": "strong", "overall_score": 0.74}
+{"run_date": "2026-09-03", "title": "Language Models Can Control Their Own Attention", "link": "https://arxiv.org/abs/2609.02737", "signal_strength": "strong", "overall_score": 0.88}
+{"run_date": "2026-09-03", "title": "AgentJudgeBench: A Multi-Difficulty Benchmark for Evaluating LLM Judges on Agentic Tool-Calling", "link": "https://arxiv.org/abs/2608.26623", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-09-03", "title": "Learning Where Outcomes Change:Credit-Addressable Reasoning for Multimodal Geometry", "link": "https://arxiv.org/abs/2608.30457", "signal_strength": "strong", "overall_score": 0.68}
+{"run_date": "2026-09-03", "title": "Harness-of-Harness: Multi-Day Autonomous Software Development with Continual Improvement", "link": "https://arxiv.org/abs/2609.01481", "signal_strength": "medium", "overall_score": 0.67}
+{"run_date": "2026-09-03", "title": "Graph Machine: Towards Better Pretraining via Edges", "link": "http://arxiv.org/abs/2609.02881v1", "signal_strength": "weak", "overall_score": 0.58}
+{"run_date": "2026-09-03", "title": "GaLe: memory-efficient Global Approximate and Local Exact features", "link": "http://arxiv.org/abs/2609.02689v1", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-09-03", "title": "Door-in-the-Face Requests and Refusal Behaviour in Large Language Models", "link": "http://arxiv.org/abs/2609.02707v1", "signal_strength": "medium", "overall_score": 0.55}
+{"run_date": "2026-09-03", "title": "Trace as State: Reasoning Traces as Conditional States for Long-Context Transformers", "link": "http://arxiv.org/abs/2609.02702v1", "signal_strength": "medium", "overall_score": 0.63}
+{"run_date": "2026-09-03", "title": "VibeVoice-ASR-Streaming Technical Report", "link": "https://arxiv.org/abs/2609.02812", "signal_strength": "strong", "overall_score": 0.83}
+{"run_date": "2026-09-03", "title": "affaan-m/ECC", "link": "https://github.com/affaan-m/ECC", "signal_strength": "medium", "overall_score": 0.56}
+{"run_date": "2026-09-03", "title": "HarnessDev: Can LLMs Create and Evolve Their Own Agent Harness?", "link": "https://arxiv.org/abs/2609.01437", "signal_strength": "medium", "overall_score": 0.68}
+{"run_date": "2026-09-03", "title": "A Glance Is All You Need: Single-Pass Fine-Grained Image Captioning with SimLoss", "link": "https://arxiv.org/abs/2609.00591", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-09-03", "title": "S3Gym: Can LLMs Turn Self-Testing and Self-Judging into Self-Improvement?", "link": "https://arxiv.org/abs/2608.31100", "signal_strength": "medium", "overall_score": 0.64}
