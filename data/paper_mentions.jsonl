@@ -1925,3 +1925,24 @@
 {"run_date": "2026-09-04", "title": "VibeVoice-ASR-Streaming Technical Report", "link": "https://arxiv.org/abs/2609.02812", "signal_strength": "medium", "overall_score": 0.67}
 {"run_date": "2026-09-04", "title": "SWE-Gate: Passing Functional Tests Is Not Enough for Software Engineering Agents", "link": "http://arxiv.org/abs/2609.04167v1", "signal_strength": "medium", "overall_score": 0.66}
 {"run_date": "2026-09-04", "title": "A Glance Is All You Need: Single-Pass Fine-Grained Image Captioning with SimLoss", "link": "https://arxiv.org/abs/2609.00591", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-09-05", "title": "Locked at the Entrance, Open Inside: Where RLVR Narrows the Solution Space", "link": "https://arxiv.org/abs/2608.29188", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-09-05", "title": "Environment Evolution for Terminal Agents", "link": "https://arxiv.org/abs/2609.04128", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-09-05", "title": "Terminal-Universe: Turning Agent Trajectories into Scalable Terminal Environments", "link": "https://arxiv.org/abs/2609.04148", "signal_strength": "medium", "overall_score": 0.78}
+{"run_date": "2026-09-05", "title": "Why Gated DeltaNet Survives 4-Bit Quantization: NVFP4 W4A4 for the Recurrent Half of a Hybrid 27B LLM", "link": "https://arxiv.org/abs/2609.04098", "signal_strength": "medium", "overall_score": 0.52}
+{"run_date": "2026-09-05", "title": "LLaDA-Image: Building Strong Image Generators with Fully Open Training Recipes", "link": "https://arxiv.org/abs/2609.03796", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-09-05", "title": "Scal3R: Learning Efficient Multi-Relative Pose Query for Scalable Online 3D Reconstruction", "link": "https://arxiv.org/abs/2609.04201", "signal_strength": "strong", "overall_score": 0.82}
+{"run_date": "2026-09-05", "title": "affaan-m/ECC", "link": "https://github.com/affaan-m/ECC", "signal_strength": "weak", "overall_score": 0.32}
+{"run_date": "2026-09-05", "title": "Small Language Models as Judges for Rubric-Based Reinforcement Learning", "link": "https://arxiv.org/abs/2608.30005", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-09-05", "title": "Knowing When Not to Reuse: Conditional Experience Transfer in Autonomous LLM Post-Training", "link": "https://arxiv.org/abs/2608.26730", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-09-05", "title": "Using Grounded Theory for Agent Behavior Analysis at Scale", "link": "https://arxiv.org/abs/2608.30391", "signal_strength": "medium", "overall_score": 0.68}
+{"run_date": "2026-09-05", "title": "WHALE: A Simple Recipe for Joint Harness-Weight Optimization", "link": "https://arxiv.org/abs/2609.00196", "signal_strength": "medium", "overall_score": 0.67}
+{"run_date": "2026-09-05", "title": "VibeVoice-ASR-Streaming Technical Report", "link": "https://arxiv.org/abs/2609.02812", "signal_strength": "strong", "overall_score": 0.692}
+{"run_date": "2026-09-05", "title": "Beyond Retrieval: Progressive Latent Memory Evolution for Streaming Video Understanding", "link": "https://arxiv.org/abs/2609.04131", "signal_strength": "medium", "overall_score": 0.65}
+{"run_date": "2026-09-05", "title": "RealSWE: A Compositional Evaluation of Coding Agents under Realistic User Requests", "link": "https://arxiv.org/abs/2608.27831", "signal_strength": "medium", "overall_score": 0.618}
+{"run_date": "2026-09-05", "title": "A Glance Is All You Need: Single-Pass Fine-Grained Image Captioning with SimLoss", "link": "https://arxiv.org/abs/2609.00591", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-09-05", "title": "A Common Measure of Communication for Speech Brain-Computer Interfaces", "link": "https://arxiv.org/abs/2609.02887", "signal_strength": "medium", "overall_score": 0.6}
+{"run_date": "2026-09-05", "title": "RoboTok: An Internet-Scale Data Engine for Human Demonstration Retrieval and Dexterous Manipulation Learning", "link": "https://arxiv.org/abs/2609.03199", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-05", "title": "VeriPhy: Agentic Physical Reasoning for World Model Evaluation and Refinement", "link": "https://arxiv.org/abs/2609.03153", "signal_strength": "medium", "overall_score": 0.74}
+{"run_date": "2026-09-05", "title": "Last Translation Benchmark", "link": "https://arxiv.org/abs/2609.04173", "signal_strength": "medium", "overall_score": 0.53}
+{"run_date": "2026-09-05", "title": "PACE: Towards Surfacing Hidden Conflicts in User Requests", "link": "https://arxiv.org/abs/2609.03293", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-09-05", "title": "Select, Compress, Reinvest: A Controlled Study of Visual-Token Allocation in Long-Video MLLMs", "link": "https://arxiv.org/abs/2609.03820", "signal_strength": "medium", "overall_score": 0.57}
