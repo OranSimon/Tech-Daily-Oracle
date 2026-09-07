@@ -1968,3 +1968,27 @@
 {"run_date": "2026-09-06", "title": "Select, Compress, Reinvest: A Controlled Study of Visual-Token Allocation in Long-Video MLLMs", "link": "https://arxiv.org/abs/2609.03820", "signal_strength": "weak", "overall_score": 0.41}
 {"run_date": "2026-09-06", "title": "PACE: Towards Surfacing Hidden Conflicts in User Requests", "link": "https://arxiv.org/abs/2609.03293", "signal_strength": "medium", "overall_score": 0.6}
 {"run_date": "2026-09-06", "title": "Last Translation Benchmark", "link": "https://arxiv.org/abs/2609.04173", "signal_strength": "strong", "overall_score": 0.76}
+{"run_date": "2026-09-07", "title": "Dr. Claw: An AI Scientist Workspace for Vibe Research", "link": "https://arxiv.org/abs/2609.00365", "signal_strength": "medium", "overall_score": 0.46}
+{"run_date": "2026-09-07", "title": "τ^τ-Bench: An Environment for End-To-End, Realistic Agent Construction", "link": "https://arxiv.org/abs/2609.04611", "signal_strength": "medium", "overall_score": 0.74}
+{"run_date": "2026-09-07", "title": "MaxKernel: Agentic Kernel Generation for TPUs", "link": "https://arxiv.org/abs/2609.04523", "signal_strength": "medium", "overall_score": 0.76}
+{"run_date": "2026-09-07", "title": "Motion-Omni: End-to-End Joint Speech and Full-Body Motion for Spoken Dialogue", "link": "https://arxiv.org/abs/2609.04250", "signal_strength": "medium", "overall_score": 0.74}
+{"run_date": "2026-09-07", "title": "HarvestBench: Measuring Whether LLM Agents Will Pay to Avoid Killing Animals", "link": "https://arxiv.org/abs/2609.04444", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-07", "title": "Locked at the Entrance, Open Inside: Where RLVR Narrows the Solution Space", "link": "https://arxiv.org/abs/2608.29188", "signal_strength": "medium", "overall_score": 0.46}
+{"run_date": "2026-09-07", "title": "Group Adaptive Clipping Policy Optimization", "link": "https://arxiv.org/abs/2609.00444", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-07", "title": "affaan-m/ECC", "link": "https://github.com/affaan-m/ECC", "signal_strength": "medium", "overall_score": 0.46}
+{"run_date": "2026-09-07", "title": "Refuse without Refusal: A Structural Analysis of Safety-Tuning Responses for Reducing False Refusals in Language Models", "link": "https://arxiv.org/abs/2609.04714", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-09-07", "title": "The 2026 PNPL Competition: Word Classification and Efficient Cross-Subject Generalisation in LibriBrain100", "link": "https://arxiv.org/abs/2609.03231", "signal_strength": "weak", "overall_score": 0.56}
+{"run_date": "2026-09-07", "title": "Ask Before You Optimize: Dynamic Pre-Formulation Clarification for Interactive Optimization", "link": "https://arxiv.org/abs/2609.05258", "signal_strength": "medium", "overall_score": 0.68}
+{"run_date": "2026-09-07", "title": "AdaptVPR: Route-Aware Hard Positive Generation for Robust Visual Place Recognition", "link": "https://arxiv.org/abs/2609.04369", "signal_strength": "medium", "overall_score": 0.59}
+{"run_date": "2026-09-07", "title": "Knowing When Not to Reuse: Conditional Experience Transfer in Autonomous LLM Post-Training", "link": "https://arxiv.org/abs/2608.26730", "signal_strength": "medium", "overall_score": 0.56}
+{"run_date": "2026-09-07", "title": "RealSWE: A Compositional Evaluation of Coding Agents under Realistic User Requests", "link": "https://arxiv.org/abs/2608.27831", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-07", "title": "Using Grounded Theory for Agent Behavior Analysis at Scale", "link": "https://arxiv.org/abs/2608.30391", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-07", "title": "WorldReward: Reward Modeling for Camera-Conditioned World Models", "link": "https://arxiv.org/abs/2609.03952", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-07", "title": "Beyond Retrieval: Progressive Latent Memory Evolution for Streaming Video Understanding", "link": "https://arxiv.org/abs/2609.04131", "signal_strength": "strong", "overall_score": 0.66}
+{"run_date": "2026-09-07", "title": "Knowing What Not to Answer: Selective Non-Compliance in Vision-Language Models", "link": "https://arxiv.org/abs/2609.04720", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-09-07", "title": "UniMate: One Unified Model to Animate Diverse Skeletons", "link": "https://arxiv.org/abs/2609.05415", "signal_strength": "strong", "overall_score": 0.864}
+{"run_date": "2026-09-07", "title": "Training-Free Speech-Centric Omni Understanding with Frozen VLMs", "link": "https://arxiv.org/abs/2609.04242", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-07", "title": "WeatherNext 3", "link": "https://deepmind.google/science/weathernext/", "signal_strength": "medium", "overall_score": 0.72}
+{"run_date": "2026-09-07", "title": "Bilevel Coordinated Reflection: A Game-Theoretic Approach to Multi-Agent LLM Systems", "link": "https://arxiv.org/abs/2609.02750", "signal_strength": "medium", "overall_score": 0.42}
+{"run_date": "2026-09-07", "title": "Beneath the Surface of Chains-of-Thought: A Mechanistic Interpretation of Reasoning Operations in LLMs", "link": "https://arxiv.org/abs/2609.04753", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-09-07", "title": "The Attention Triangle in Audio-Video Models", "link": "https://arxiv.org/abs/2609.03586", "signal_strength": "medium", "overall_score": 0.5}
