@@ -211,3 +211,6 @@
 {"run_date": "2026-09-16", "repo": "supabase/supabase", "url": "https://github.com/supabase/supabase", "verdict": "Watch", "stars_total": 109691}
 {"run_date": "2026-09-16", "repo": "NationalSecurityAgency/ghidra", "url": "https://github.com/NationalSecurityAgency/ghidra", "verdict": "Watch", "stars_total": 77748}
 {"run_date": "2026-09-16", "repo": "addyosmani/agent-skills", "url": "https://github.com/addyosmani/agent-skills", "verdict": "Watch", "stars_total": 95418}
+{"run_date": "2026-09-17", "repo": "n8n-io/n8n", "url": "https://github.com/n8n-io/n8n", "verdict": "Watch", "stars_total": 204952}
+{"run_date": "2026-09-17", "repo": "cilium/cilium", "url": "https://github.com/cilium/cilium", "verdict": "Watch", "stars_total": 25255}
+{"run_date": "2026-09-17", "repo": "cline/cline", "url": "https://github.com/cline/cline", "verdict": "Watch", "stars_total": 68546}
