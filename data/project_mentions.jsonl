@@ -214,3 +214,6 @@
 {"run_date": "2026-09-17", "repo": "n8n-io/n8n", "url": "https://github.com/n8n-io/n8n", "verdict": "Watch", "stars_total": 204952}
 {"run_date": "2026-09-17", "repo": "cilium/cilium", "url": "https://github.com/cilium/cilium", "verdict": "Watch", "stars_total": 25255}
 {"run_date": "2026-09-17", "repo": "cline/cline", "url": "https://github.com/cline/cline", "verdict": "Watch", "stars_total": 68546}
+{"run_date": "2026-09-18", "repo": "supabase/supabase", "url": "https://github.com/supabase/supabase", "verdict": "Watch", "stars_total": 110132}
+{"run_date": "2026-09-18", "repo": "anthropics/claude-code", "url": "https://github.com/anthropics/claude-code", "verdict": "Watch", "stars_total": 146267}
+{"run_date": "2026-09-18", "repo": "coder/coder", "url": "https://github.com/coder/coder", "verdict": "Watch", "stars_total": 15265}
