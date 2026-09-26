@@ -238,3 +238,6 @@
 {"run_date": "2026-09-25", "repo": "anthropics/skills", "url": "https://github.com/anthropics/skills", "verdict": "Watch", "stars_total": 178295}
 {"run_date": "2026-09-25", "repo": "openbao/openbao", "url": "https://github.com/openbao/openbao", "verdict": "Watch", "stars_total": 7718}
 {"run_date": "2026-09-25", "repo": "NVIDIA/Model-Optimizer", "url": "https://github.com/NVIDIA/Model-Optimizer", "verdict": "Watch", "stars_total": 4454}
+{"run_date": "2026-09-26", "repo": "llvm/llvm-project", "url": "https://github.com/llvm/llvm-project", "verdict": "Watch", "stars_total": 40745}
+{"run_date": "2026-09-26", "repo": "NVIDIA/Model-Optimizer", "url": "https://github.com/NVIDIA/Model-Optimizer", "verdict": "Watch", "stars_total": 4733}
+{"run_date": "2026-09-26", "repo": "openbao/openbao", "url": "https://github.com/openbao/openbao", "verdict": "Watch", "stars_total": 7995}
