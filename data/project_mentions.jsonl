@@ -241,3 +241,6 @@
 {"run_date": "2026-09-26", "repo": "llvm/llvm-project", "url": "https://github.com/llvm/llvm-project", "verdict": "Watch", "stars_total": 40745}
 {"run_date": "2026-09-26", "repo": "NVIDIA/Model-Optimizer", "url": "https://github.com/NVIDIA/Model-Optimizer", "verdict": "Watch", "stars_total": 4733}
 {"run_date": "2026-09-26", "repo": "openbao/openbao", "url": "https://github.com/openbao/openbao", "verdict": "Watch", "stars_total": 7995}
+{"run_date": "2026-09-27", "repo": "debpalash/VoiceStudio", "url": "https://github.com/debpalash/VoiceStudio", "verdict": "Watch", "stars_total": 40017}
+{"run_date": "2026-09-27", "repo": "dream-num/univer", "url": "https://github.com/dream-num/univer", "verdict": "Watch", "stars_total": 20139}
+{"run_date": "2026-09-27", "repo": "vercel-labs/scriptc", "url": "https://github.com/vercel-labs/scriptc", "verdict": "Watch", "stars_total": 5382}
