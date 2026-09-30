@@ -2369,3 +2369,20 @@
 {"run_date": "2026-09-28", "title": "TrackEverything: Long Horizon Dense Tracking via De-Duplicating 3D Scene Representations", "link": "https://arxiv.org/abs/2609.30222", "signal_strength": "medium", "overall_score": 0.77}
 {"run_date": "2026-09-28", "title": "Not All Ranks Are Equal: Budget-Aware LoRA Merging Across Tasks", "link": "https://arxiv.org/abs/2609.22237", "signal_strength": "medium", "overall_score": 0.66}
 {"run_date": "2026-09-28", "title": "D-JEPA: A Decision-Aligned Latent World Model", "link": "https://arxiv.org/abs/2609.24749", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-09-29", "title": "KV-streams for Efficient Compaction in Agentic Reinforcement Learning", "link": "http://arxiv.org/abs/2609.35750v1", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-09-29", "title": "KernelZero: Co-Evolving Proposer and Coder for Continuously Improved GPU Kernel Generation", "link": "https://arxiv.org/abs/2609.33074", "signal_strength": "medium", "overall_score": 0.79}
+{"run_date": "2026-09-29", "title": "Pruned CTC for Memory-Efficient Large-Vocabulary ASR Training", "link": "https://arxiv.org/abs/2609.33645", "signal_strength": "medium", "overall_score": 0.532}
+{"run_date": "2026-09-29", "title": "Nereus: Adaptive Parallelism for LLM Post-Training", "link": "https://arxiv.org/abs/2609.34645", "signal_strength": "medium", "overall_score": 0.63}
+{"run_date": "2026-09-29", "title": "Allspark: Weak to Strong Transfer via Alternating Chain of Thought", "link": "https://arxiv.org/abs/2609.32913", "signal_strength": "medium", "overall_score": 0.63}
+{"run_date": "2026-09-29", "title": "DISCO: Distributed Long Context Scaling with Grounding-Reasoning Disaggregation", "link": "https://arxiv.org/abs/2609.33485", "signal_strength": "medium", "overall_score": 0.7}
+{"run_date": "2026-09-29", "title": "QwenGyre: An Elastic Reinforcement Learning Framework for Training xLong-Horizon Agents", "link": "https://arxiv.org/abs/2609.33848", "signal_strength": "medium", "overall_score": 0.76}
+{"run_date": "2026-09-29", "title": "NanoForecast v0.5: Competitive Time Series Forecasting Through Training Pipeline Optimization", "link": "https://arxiv.org/abs/2609.31669", "signal_strength": "medium", "overall_score": 0.51}
+{"run_date": "2026-09-29", "title": "Shockingly Simple Self-retrospection Improves Agentic Models Without RL", "link": "http://arxiv.org/abs/2609.35741v1", "signal_strength": "medium", "overall_score": 0.67}
+{"run_date": "2026-09-29", "title": "Telescopic Language Models", "link": "http://arxiv.org/abs/2609.35769v1", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-09-29", "title": "CollisionSplatting: Collision-Aware Motion Planning in 3DGS Scenes with Image-Conditioned Objectives and Adjustable Conservatism", "link": "http://arxiv.org/abs/2609.35619v1", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-09-29", "title": "Rubric Rewards from Item Response Theory", "link": "http://arxiv.org/abs/2609.35646v1", "signal_strength": "medium", "overall_score": 0.578}
+{"run_date": "2026-09-29", "title": "Agent Priors-guided Policy Learning", "link": "http://arxiv.org/abs/2609.35690v1", "signal_strength": "medium", "overall_score": 0.53}
+{"run_date": "2026-09-29", "title": "Denoising Multi-Robot Trajectories", "link": "http://arxiv.org/abs/2609.35651v1", "signal_strength": "medium", "overall_score": 0.656}
+{"run_date": "2026-09-29", "title": "SANTA++: Sampling Attention through Representative Keys", "link": "http://arxiv.org/abs/2609.35629v1", "signal_strength": "medium", "overall_score": 0.63}
+{"run_date": "2026-09-29", "title": "SentZero: An Enhanced Sentence-Centric Vision-Language Pretraining for Multi-Task Zero-Shot Chest X-Ray Analysis", "link": "https://arxiv.org/abs/2609.34479", "signal_strength": "medium", "overall_score": 0.68}
+{"run_date": "2026-09-29", "title": "SCOPD: Sparse-Context On-Policy Self-Distillation for Efficient Vision-Language Models", "link": "https://arxiv.org/abs/2609.34044", "signal_strength": "medium", "overall_score": 0.58}
