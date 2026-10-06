@@ -265,3 +265,6 @@
 {"run_date": "2026-10-04", "repo": "getsentry/sentry", "url": "https://github.com/getsentry/sentry", "verdict": "Watch", "stars_total": 45376}
 {"run_date": "2026-10-04", "repo": "caddyserver/caddy", "url": "https://github.com/caddyserver/caddy", "verdict": "Watch", "stars_total": 76551}
 {"run_date": "2026-10-04", "repo": "addyosmani/agent-skills", "url": "https://github.com/addyosmani/agent-skills", "verdict": "Watch", "stars_total": 101207}
+{"run_date": "2026-10-05", "repo": "caddyserver/caddy", "url": "https://github.com/caddyserver/caddy", "verdict": "Watch", "stars_total": 77137}
+{"run_date": "2026-10-05", "repo": "thedotmack/claude-mem", "url": "https://github.com/thedotmack/claude-mem", "verdict": "Watch", "stars_total": 96646}
+{"run_date": "2026-10-05", "repo": "cloudflare/cloudflare-os", "url": "https://github.com/cloudflare/cloudflare-os", "verdict": "Watch", "stars_total": 11018}
