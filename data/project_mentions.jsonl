@@ -280,3 +280,6 @@
 {"run_date": "2026-10-09", "repo": "addyosmani/agent-skills", "url": "https://github.com/addyosmani/agent-skills", "verdict": "Watch", "stars_total": 103984}
 {"run_date": "2026-10-09", "repo": "BerriAI/litellm", "url": "https://github.com/BerriAI/litellm", "verdict": "Watch", "stars_total": 60658}
 {"run_date": "2026-10-09", "repo": "boykopovar/AnyPS5", "url": "https://github.com/boykopovar/AnyPS5", "verdict": "Watch", "stars_total": 22301}
+{"run_date": "2026-10-10", "repo": "huggingface/transformers", "url": "https://github.com/huggingface/transformers", "verdict": "Watch", "stars_total": 167246}
+{"run_date": "2026-10-10", "repo": "pytorch/pytorch", "url": "https://github.com/pytorch/pytorch", "verdict": "Watch", "stars_total": 104137}
+{"run_date": "2026-10-10", "repo": "flutter/flutter", "url": "https://github.com/flutter/flutter", "verdict": "Watch", "stars_total": 179513}
