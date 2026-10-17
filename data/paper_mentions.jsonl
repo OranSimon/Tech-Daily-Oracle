@@ -2731,3 +2731,25 @@
 {"run_date": "2026-10-16", "title": "Training Reasoning Models to Generate Diverse Scientific Ideas", "link": "http://arxiv.org/abs/2610.22324v1", "signal_strength": "medium", "overall_score": 0.59}
 {"run_date": "2026-10-16", "title": "Language Is a Security Surface for Agent Guards", "link": "http://arxiv.org/abs/2610.22244v1", "signal_strength": "medium", "overall_score": 0.7}
 {"run_date": "2026-10-16", "title": "Training-Free On-Policy Distillation", "link": "http://arxiv.org/abs/2610.22236v1", "signal_strength": "medium", "overall_score": 0.72}
+{"run_date": "2026-10-17", "title": "90% of US working hours are spent on tasks not covered well by AI benchmarks", "link": "https://www.mercor.com/research/labor-index/benchmark-map/", "signal_strength": "medium", "overall_score": 0.63}
+{"run_date": "2026-10-17", "title": "LEASH: Uncertainty-Aware Weak-to-Strong Escalation and Oversight for Computer-Use Agents", "link": "https://arxiv.org/abs/2610.22280", "signal_strength": "medium", "overall_score": 0.668}
+{"run_date": "2026-10-17", "title": "Mosaic: Multi-Session Agentic Reinforcement Learning", "link": "https://arxiv.org/abs/2610.22174", "signal_strength": "medium", "overall_score": 0.69}
+{"run_date": "2026-10-17", "title": "LeanPRM: Lean-Grounded Process Supervision for Natural Language Proof Verification", "link": "https://arxiv.org/abs/2610.17697", "signal_strength": "medium", "overall_score": 0.74}
+{"run_date": "2026-10-17", "title": "SERO: Learning from Executable Oracle Continuations for Long-Horizon Agentic Reinforcement Learning", "link": "https://arxiv.org/abs/2610.19397", "signal_strength": "medium", "overall_score": 0.57}
+{"run_date": "2026-10-17", "title": "FlashMask-3: Efficient and Expressive Mask-Aware Distributed Attention", "link": "https://arxiv.org/abs/2610.17901", "signal_strength": "medium", "overall_score": 0.69}
+{"run_date": "2026-10-17", "title": "Data World: Scaling Data Environments from Scratch", "link": "https://arxiv.org/abs/2610.21656", "signal_strength": "medium", "overall_score": 0.71}
+{"run_date": "2026-10-17", "title": "MJev-Spatial: System One Spatial Intelligence via Native Attention Matching", "link": "https://arxiv.org/abs/2610.22276", "signal_strength": "medium", "overall_score": 0.578}
+{"run_date": "2026-10-17", "title": "OpenGCUA: Toward a Fully Open Stack for Generalist Computer Use", "link": "https://arxiv.org/abs/2610.22200", "signal_strength": "strong", "overall_score": 0.83}
+{"run_date": "2026-10-17", "title": "Cowork-Gym: Synthesizing Interactive Work Environments at Scale", "link": "https://arxiv.org/abs/2610.17670", "signal_strength": "medium", "overall_score": 0.76}
+{"run_date": "2026-10-17", "title": "MLExpert: Towards a Generalist Agentic Model for Autonomous Machine Learning Engineering", "link": "https://arxiv.org/abs/2610.22344", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-10-17", "title": "H-DDCM: Hadamard Codebooks for Fast Generative Image and Video Compression", "link": "https://arxiv.org/abs/2610.18125", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-10-17", "title": "Trajectory-Level Speculation with Semantic Verification for Tool-Using Agents", "link": "https://arxiv.org/abs/2610.21463", "signal_strength": "medium", "overall_score": 0.578}
+{"run_date": "2026-10-17", "title": "FDE-Gym: The Last Mile of AI Delivery", "link": "https://arxiv.org/abs/2610.22350", "signal_strength": "medium", "overall_score": 0.76}
+{"run_date": "2026-10-17", "title": "VascuSR: Iterative Anatomy-Aware Diffusion for CT Super-Resolution", "link": "https://arxiv.org/abs/2610.20509", "signal_strength": "medium", "overall_score": 0.67}
+{"run_date": "2026-10-17", "title": "CoDA: Co-Evolution of Data Engines and Action Policies", "link": "https://arxiv.org/abs/2610.22362", "signal_strength": "medium", "overall_score": 0.578}
+{"run_date": "2026-10-17", "title": "CoWorld Reasoner: Agentic Multimodal Reasoning with the Evolving Video World Model-Driven Harness", "link": "https://arxiv.org/abs/2610.21910", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-10-17", "title": "Self-Evolving Agent Harness", "link": "https://arxiv.org/abs/2610.18813", "signal_strength": "weak", "overall_score": 0.64}
+{"run_date": "2026-10-17", "title": "Diminishing Returns of Data in Sparse Autoencoders: Functional Behavior does not Guarantee Feature Reproducibility", "link": "https://arxiv.org/abs/2610.20680", "signal_strength": "medium", "overall_score": 0.48}
+{"run_date": "2026-10-17", "title": "PathFM: Fast Generative Forecasting of Multivariate Trajectories", "link": "https://arxiv.org/abs/2610.22358", "signal_strength": "medium", "overall_score": 0.596}
+{"run_date": "2026-10-17", "title": "Scalable Weak-to-Strong Verifier Hardening for Agent Environments", "link": "https://arxiv.org/abs/2610.15924", "signal_strength": "medium", "overall_score": 0.7}
+{"run_date": "2026-10-17", "title": "Behavioral Compositionality of Sparse Autoencoder Representations", "link": "https://arxiv.org/abs/2610.21261", "signal_strength": "medium", "overall_score": 0.61}
