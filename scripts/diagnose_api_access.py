@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -33,10 +35,10 @@ def emit(probe: str, **fields: object) -> None:
     print(json.dumps({"probe": probe, **fields}, ensure_ascii=False), flush=True)
 
 
-def probe(name: str, method: str, url: str, headers: dict, payload: dict | None = None) -> dict | None:
+def probe(name: str, method: str, url: str, headers: dict, payload: dict | None = None, *, timeout: int = 120) -> dict | None:
     start = time.monotonic()
     try:
-        with httpx.Client(timeout=120, follow_redirects=False) as client:
+        with httpx.Client(timeout=timeout, follow_redirects=False) as client:
             response = client.request(method, url, headers=headers, json=payload)
         try:
             data = response.json()
@@ -87,6 +89,64 @@ def probe(name: str, method: str, url: str, headers: dict, payload: dict | None 
         return None
 
 
+def jsonl(name: str, *, prior: bool = False) -> list[dict]:
+    text = subprocess.check_output(["git", "show", f"eaccda984e04b71b9e5f1c19b443adbfbe4ab725:data/{name}.jsonl"], text=True) if prior else (ROOT / "data" / f"{name}.jsonl").read_text()
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
+
+
+def replay_report() -> None:
+    """Rebuild stored portions of the failed request; original analyses were not retained."""
+    date = "2026-10-23"
+    events = [row for row in jsonl("source_events") if row.get("run_date") == date]
+    opened = [row for row in jsonl("prediction_log", prior=True) if row.get("status") == "open"]
+    current = jsonl("prediction_log")
+    companies = [row for row in jsonl("company_mentions") if row.get("run_date") == date]
+    topics = [row for row in jsonl("topic_trends") if row.get("run_date") == date]
+    reports = sorted((ROOT / "reports/daily").glob("*.md"))
+    payload = {
+        "run_date": date,
+        "normalized_events": sorted(events, key=lambda row: row.get("importance_score", 0), reverse=True)[:30],
+        "topic_summaries": {row["topic_id"]: row for row in topics},
+        "company_analyses": {row["company"]: row for row in companies if row.get("significance") in ("high", "medium")},
+        "paper_analyses": [row for row in jsonl("paper_mentions") if row.get("run_date") == date][:8],
+        "github_project_analyses": [row for row in jsonl("project_mentions") if row.get("run_date") == date and row.get("verdict") == "Watch"][:3],
+        "github_project_analysis_status": {}, "social_signal_analyses": {}, "macro_impact_analyses": {},
+        "open_predictions": opened,
+        "prediction_updates": [update for row in current for update in row.get("updates", []) if update.get("update_date") == date],
+        "new_predictions": [row for row in current if row.get("created_date") == date],
+        "previous_reports_summary": [{"report_date": p.stem, "type": "daily", "excerpt": p.read_text()[:800]} for p in reports if p.stem < date][-7:],
+        "history_context": {
+            "weekly_reviews": [{"week": p.stem, "excerpt": p.read_text()[:1500]} for p in sorted((ROOT / "reports/weekly").glob("*.md"))][-4:],
+            "monthly_reviews": [{"month": p.stem, "excerpt": p.read_text()[:2000]} for p in sorted((ROOT / "reports/monthly").glob("*.md"))][-3:],
+            "topic_trend_30d": [row for row in jsonl("topic_trends", prior=True)][-90:],
+            "company_mentions_90d": [row for row in jsonl("company_mentions", prior=True)][-120:],
+        },
+        "market_signal_analyses": [], "source_warnings": [], "confidence_flags": [],
+        "user_preferences": yaml.safe_load((ROOT / "data/user_preferences.yml").read_text()), "signal_level": "high",
+    }
+    system = (ROOT / "prompts/daily_brief.md").read_text()
+    user = json.dumps(payload, ensure_ascii=False)
+    emit("report.reconstruction", exact_original_request=False, original_events=len(events), original_open_predictions=len(opened), open_prediction_chars=len(json.dumps(opened, ensure_ascii=False)), request_chars=len(system) + len(user), missing_original_full_analyses=True)
+    key = KEYS["DEEPSEEK_API_KEY"]
+    if key:
+        headers = {"Authorization": f"Bearer {key}"}
+        request = {"model": CONFIG["ai_providers"]["deepseek"]["default"], "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "max_tokens": CONFIG["model"]["max_tokens_daily"]}
+        data = probe("deepseek.report.default_thinking", "POST", "https://api.deepseek.com/chat/completions", headers, request, timeout=240)
+        if data:
+            choice = (data.get("choices") or [{}])[0]
+            text = choice.get("message", {}).get("content") or ""
+            emit("deepseek.report.production_validation", accepted_initial_response=bool(text.strip()) and choice.get("finish_reason") in ("stop", "length"), continuation_needed=choice.get("finish_reason") == "length")
+            if choice.get("finish_reason") == "length" and text.strip():
+                continuation = {**request, "messages": [*request["messages"], {"role": "assistant", "content": text}, {"role": "user", "content": "上一轮回复因输出上限被截断。请从停止位置继续，不重复已输出内容，不要添加引言或元说明。"}]}
+                probe("deepseek.report.continuation", "POST", "https://api.deepseek.com/chat/completions", headers, continuation, timeout=240)
+            if not text.strip() or choice.get("finish_reason") == "length":
+                probe("deepseek.report.disabled_thinking", "POST", "https://api.deepseek.com/chat/completions", headers, {**request, "thinking": {"type": "disabled"}}, timeout=240)
+    key = KEYS["GEMINI_API_KEY"]
+    if key:
+        model = CONFIG["ai_providers"]["gemini"]["default"]
+        probe("gemini.report_input", "POST", f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", {"x-goog-api-key": key}, {"systemInstruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}], "generationConfig": {"maxOutputTokens": 128}}, timeout=240)
+
+
 def main() -> None:
     emit("credentials", present={name: bool(value) for name, value in KEYS.items()})
     message = [{"role": "user", "content": "Reply with only the word OK."}]
@@ -113,4 +173,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    replay_report() if "--replay-report" in sys.argv else main()
