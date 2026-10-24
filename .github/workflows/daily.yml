@@ -1,14 +1,14 @@
-name: Tech Daily API Diagnostics
+name: DeepSeek Daily Retry
 
 on:
   workflow_dispatch:
     inputs:
       run_date:
-        description: 'Diagnostic reference date (does not generate or publish a report)'
+        description: 'Retry archived report date (2026-10-23)'
         required: false
         type: string
       force:
-        description: 'Unused compatibility input'
+        description: 'Compatibility input; retry always regenerates'
         required: false
         type: boolean
         default: false
@@ -17,22 +17,28 @@ permissions:
   contents: read
 
 jobs:
-  diagnostics:
+  deepseek-retry:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 8
+          fetch-depth: 12
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install diagnostic dependencies
-        run: python -m pip install 'httpx>=0.27.0' 'pyyaml>=6.0.2'
-      - name: Probe existing API access (sanitized output only)
+          cache: pip
+      - name: Install production dependencies
+        run: python -m pip install -e .
+      - name: Regenerate archived 2026-10-23 daily report with DeepSeek only
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python -u scripts/diagnose_api_access.py --compact-report
+        run: python -u scripts/retry_daily_deepseek.py
+      - name: Save report and sanitized trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-daily-2026-10-23
+          path: retry-output/
+          if-no-files-found: error
+          retention-days: 30
