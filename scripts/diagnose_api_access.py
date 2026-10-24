@@ -94,7 +94,7 @@ def jsonl(name: str, *, prior: bool = False) -> list[dict]:
     return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
-def replay_report() -> None:
+def replay_report(*, compact: bool = False) -> None:
     """Rebuild stored portions of the failed request; original analyses were not retained."""
     date = "2026-10-23"
     events = [row for row in jsonl("source_events") if row.get("run_date") == date]
@@ -124,9 +124,13 @@ def replay_report() -> None:
         "market_signal_analyses": [], "source_warnings": [], "confidence_flags": [],
         "user_preferences": yaml.safe_load((ROOT / "data/user_preferences.yml").read_text()), "signal_level": "high",
     }
+    if compact:
+        selected = sorted(opened, key=lambda row: row.get("created_date", ""), reverse=True)[:20]
+        fields = ("prediction_id", "prediction", "probability", "horizon_date", "confidence", "companies", "topic_tags")
+        payload["open_predictions"] = [{key: row[key] for key in fields if key in row} for row in selected]
     system = (ROOT / "prompts/daily_brief.md").read_text()
     user = json.dumps(payload, ensure_ascii=False)
-    emit("report.reconstruction", exact_original_request=False, original_events=len(events), original_open_predictions=len(opened), open_prediction_chars=len(json.dumps(opened, ensure_ascii=False)), request_chars=len(system) + len(user), missing_original_full_analyses=True)
+    emit("report.reconstruction", exact_original_request=False, compact_predictions=compact, original_events=len(events), original_open_predictions=len(opened), selected_open_predictions=len(payload["open_predictions"]), open_prediction_chars=len(json.dumps(payload["open_predictions"], ensure_ascii=False)), request_chars=len(system) + len(user), missing_original_full_analyses=True)
     key = KEYS["DEEPSEEK_API_KEY"]
     if key:
         headers = {"Authorization": f"Bearer {key}"}
@@ -144,7 +148,7 @@ def replay_report() -> None:
     key = KEYS["GEMINI_API_KEY"]
     if key:
         model = CONFIG["ai_providers"]["gemini"]["default"]
-        probe("gemini.report_input", "POST", f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", {"x-goog-api-key": key}, {"systemInstruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}], "generationConfig": {"maxOutputTokens": 128}}, timeout=240)
+        probe("gemini.report_input", "POST", f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent", {"x-goog-api-key": key}, {"systemInstruction": {"parts": [{"text": system}]}, "contents": [{"role": "user", "parts": [{"text": user}]}], "generationConfig": {"maxOutputTokens": CONFIG["model"]["max_tokens_daily"] if compact else 128}}, timeout=240)
 
 
 def main() -> None:
@@ -173,4 +177,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    replay_report() if "--replay-report" in sys.argv else main()
+    if "--compact-report" in sys.argv:
+        replay_report(compact=True)
+    elif "--replay-report" in sys.argv:
+        replay_report()
+    else:
+        main()
