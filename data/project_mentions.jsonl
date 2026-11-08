@@ -364,3 +364,6 @@
 {"run_date": "2026-11-06", "repo": "etcd-io/etcd", "url": "https://github.com/etcd-io/etcd", "verdict": "Watch", "stars_total": 52614}
 {"run_date": "2026-11-06", "repo": "astral-sh/ruff", "url": "https://github.com/astral-sh/ruff", "verdict": "Watch", "stars_total": 50689}
 {"run_date": "2026-11-06", "repo": "rails/rails", "url": "https://github.com/rails/rails", "verdict": "Watch", "stars_total": 59024}
+{"run_date": "2026-11-07", "repo": "prometheus/prometheus", "url": "https://github.com/prometheus/prometheus", "verdict": "Watch", "stars_total": 67442}
+{"run_date": "2026-11-07", "repo": "google/skills", "url": "https://github.com/google/skills", "verdict": "Watch", "stars_total": 23386}
+{"run_date": "2026-11-07", "repo": "astral-sh/ruff", "url": "https://github.com/astral-sh/ruff", "verdict": "Watch", "stars_total": 50971}
