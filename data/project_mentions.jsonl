@@ -367,3 +367,6 @@
 {"run_date": "2026-11-07", "repo": "prometheus/prometheus", "url": "https://github.com/prometheus/prometheus", "verdict": "Watch", "stars_total": 67442}
 {"run_date": "2026-11-07", "repo": "google/skills", "url": "https://github.com/google/skills", "verdict": "Watch", "stars_total": 23386}
 {"run_date": "2026-11-07", "repo": "astral-sh/ruff", "url": "https://github.com/astral-sh/ruff", "verdict": "Watch", "stars_total": 50971}
+{"run_date": "2026-11-08", "repo": "google-deepmind/mujoco", "url": "https://github.com/google-deepmind/mujoco", "verdict": "Watch", "stars_total": 16406}
+{"run_date": "2026-11-08", "repo": "sherlock-project/sherlock", "url": "https://github.com/sherlock-project/sherlock", "verdict": "Watch", "stars_total": 103468}
+{"run_date": "2026-11-08", "repo": "anthropics/claude-quickstarts", "url": "https://github.com/anthropics/claude-quickstarts", "verdict": "Watch", "stars_total": 19409}
