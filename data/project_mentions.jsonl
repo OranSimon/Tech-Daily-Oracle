@@ -379,3 +379,6 @@
 {"run_date": "2026-11-12", "repo": "ggml-org/llama.cpp", "url": "https://github.com/ggml-org/llama.cpp", "verdict": "Watch", "stars_total": 134576}
 {"run_date": "2026-11-12", "repo": "addyosmani/agent-skills", "url": "https://github.com/addyosmani/agent-skills", "verdict": "Watch", "stars_total": 116689}
 {"run_date": "2026-11-12", "repo": "QwenLM/qwen-code", "url": "https://github.com/QwenLM/qwen-code", "verdict": "Watch", "stars_total": 29831}
+{"run_date": "2026-11-13", "repo": "ChromeDevTools/chrome-devtools-mcp", "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp", "verdict": "Watch", "stars_total": 55458}
+{"run_date": "2026-11-13", "repo": "alibaba/open-code-review", "url": "https://github.com/alibaba/open-code-review", "verdict": "Watch", "stars_total": 50629}
+{"run_date": "2026-11-13", "repo": "openai/codex-security", "url": "https://github.com/openai/codex-security", "verdict": "Watch", "stars_total": 13142}
