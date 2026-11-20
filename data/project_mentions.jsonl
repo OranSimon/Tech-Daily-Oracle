@@ -397,3 +397,6 @@
 {"run_date": "2026-11-18", "repo": "astral-sh/uv", "url": "https://github.com/astral-sh/uv", "verdict": "Watch", "stars_total": 92245}
 {"run_date": "2026-11-18", "repo": "sveltejs/svelte", "url": "https://github.com/sveltejs/svelte", "verdict": "Watch", "stars_total": 89634}
 {"run_date": "2026-11-18", "repo": "n8n-io/n8n", "url": "https://github.com/n8n-io/n8n", "verdict": "Watch", "stars_total": 211121}
+{"run_date": "2026-11-19", "repo": "firecrawl/firecrawl", "url": "https://github.com/firecrawl/firecrawl", "verdict": "Watch", "stars_total": 204294}
+{"run_date": "2026-11-19", "repo": "openvinotoolkit/openvino", "url": "https://github.com/openvinotoolkit/openvino", "verdict": "Watch", "stars_total": 11578}
+{"run_date": "2026-11-19", "repo": "nginx/nginx", "url": "https://github.com/nginx/nginx", "verdict": "Watch", "stars_total": 32351}
