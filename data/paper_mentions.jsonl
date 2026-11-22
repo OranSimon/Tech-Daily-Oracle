@@ -3413,3 +3413,25 @@
 {"run_date": "2026-11-20", "title": "affaan-m/ECC", "link": "https://github.com/affaan-m/ECC", "signal_strength": "medium", "overall_score": 0.51}
 {"run_date": "2026-11-20", "title": "Beam Model Technical Report", "link": "http://arxiv.org/abs/2611.26358v1", "signal_strength": "medium", "overall_score": 0.77}
 {"run_date": "2026-11-20", "title": "Frontier models need only one text to unmask its human or AI author", "link": "http://arxiv.org/abs/2611.26216v1", "signal_strength": "medium", "overall_score": 0.712}
+{"run_date": "2026-11-21", "title": "AURA: AUdio-dRiven streaming Avatar", "link": "https://arxiv.org/abs/2611.26540", "signal_strength": "medium", "overall_score": 0.59}
+{"run_date": "2026-11-21", "title": "Training Vision Models for LLM-Driven Weight-Space Programming", "link": "https://arxiv.org/abs/2611.26408", "signal_strength": "medium", "overall_score": 0.54}
+{"run_date": "2026-11-21", "title": "EgoCaptioner: Towards Comprehensive and Fine-Grained Egocentric Video Captioning", "link": "https://arxiv.org/abs/2611.26380", "signal_strength": "medium", "overall_score": 0.55}
+{"run_date": "2026-11-21", "title": "TwinLab-Bench: Evaluating AI Scientists in Agentic Twins of Real Labs", "link": "https://arxiv.org/abs/2611.26248", "signal_strength": "medium", "overall_score": 0.74}
+{"run_date": "2026-11-21", "title": "Inhabitant: An Agent Framework for Long-Horizon Human-Scene Interaction with Spatial Control and Quantitative Feedback", "link": "https://arxiv.org/abs/2611.25005", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-11-21", "title": "Accelerating Mixture of Block Attention via Dynamic Routing, KV-Centric Execution and Runtime Pipelining", "link": "https://arxiv.org/abs/2611.26268", "signal_strength": "medium", "overall_score": 0.512}
+{"run_date": "2026-11-21", "title": "TuringSpace: Grounding Spatial Intelligence in Action with Interactive CAPTCHAs", "link": "https://arxiv.org/abs/2611.25387", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-11-21", "title": "On-Policy Morphing into Hybrid Attention Models", "link": "https://arxiv.org/abs/2611.24809", "signal_strength": "medium", "overall_score": 0.59}
+{"run_date": "2026-11-21", "title": "WeMM-Video: Pushing the Frontiers of Open-Source Omni-Modal Video Understanding", "link": "https://arxiv.org/abs/2611.26409", "signal_strength": "strong", "overall_score": 0.63}
+{"run_date": "2026-11-21", "title": "NarrowSpec: Draft Hidden Width Need Not Match the Target in Speculative Decoding", "link": "https://arxiv.org/abs/2611.23835", "signal_strength": "medium", "overall_score": 0.61}
+{"run_date": "2026-11-21", "title": "Lang-SVG: Hierarchical Image Vectorization with Language Priors", "link": "https://arxiv.org/abs/2611.15941", "signal_strength": "medium", "overall_score": 0.612}
+{"run_date": "2026-11-21", "title": "Teaching Vision-Language-Action Models to Stop Safely", "link": "https://arxiv.org/abs/2611.26239", "signal_strength": "medium", "overall_score": 0.58}
+{"run_date": "2026-11-21", "title": "AltRA-Test: An Alternative Annotator Test for LLM Judges Without Shared Annotators", "link": "https://arxiv.org/abs/2611.26073", "signal_strength": "medium", "overall_score": 0.47}
+{"run_date": "2026-11-21", "title": "WeVisForensics: Self-Evolving Agent for Omni AI-Generated Video Detection", "link": "https://arxiv.org/abs/2611.21373", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-11-21", "title": "PAD: Policy-Aware Data Valuation for Autonomous Driving", "link": "https://arxiv.org/abs/2611.25604", "signal_strength": "medium", "overall_score": 0.62}
+{"run_date": "2026-11-21", "title": "RL Post-Training in Diffusion Transformers Is Activation Steering", "link": "https://arxiv.org/abs/2611.26627", "signal_strength": "medium", "overall_score": 0.64}
+{"run_date": "2026-11-21", "title": "In Situ Training of Optical Neural Networks by Coding Agents", "link": "https://arxiv.org/abs/2611.23875", "signal_strength": "medium", "overall_score": 0.688}
+{"run_date": "2026-11-21", "title": "System 1 agents: a method for local, reliable and fast agentic AI", "link": "https://arxiv.org/abs/2611.21053", "signal_strength": "medium", "overall_score": 0.66}
+{"run_date": "2026-11-21", "title": "Phantom Success, Silent Failure: Auditing the Success Checkers of Simulated Manipulation Benchmarks", "link": "https://arxiv.org/abs/2611.25179", "signal_strength": "medium", "overall_score": 0.668}
+{"run_date": "2026-11-21", "title": "Do Probing and Steering Favor the Same Directions Within and Across Language Models?", "link": "https://arxiv.org/abs/2611.19499", "signal_strength": "medium", "overall_score": 0.49}
+{"run_date": "2026-11-21", "title": "SpecWM: Turning Verification into Refinement for Streaming World Models", "link": "https://arxiv.org/abs/2611.26211", "signal_strength": "medium", "overall_score": 0.604}
+{"run_date": "2026-11-21", "title": "Online Mistake Detection in Instruction-Conditioned Procedural Video", "link": "https://arxiv.org/abs/2611.25567", "signal_strength": "medium", "overall_score": 0.56}
